@@ -1,0 +1,309 @@
+/* Templates, webhooks and settings: tables, drawer, preview, cards. */
+
+.split {
+	display: flex;
+	flex: 1;
+	min-height: 0;
+}
+
+.split__main {
+	flex: 1;
+	min-width: 0;
+	overflow: auto;
+}
+
+.link-button {
+	padding: 0;
+	border: none;
+	background: none;
+	color: var(--accent);
+	font: inherit;
+	font-weight: 600;
+	text-align: left;
+	cursor: pointer;
+}
+
+.table tbody tr {
+	cursor: default;
+}
+
+.table--log tbody tr.delivery {
+	cursor: pointer;
+}
+
+.delivery__url {
+	max-width: 320px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.delivery__details td {
+	background: var(--surface-2);
+}
+
+.drawer {
+	display: flex;
+	flex: none;
+	flex-direction: column;
+	width: min(460px, 46vw);
+	min-height: 0;
+	border-left: 1px solid var(--border);
+	background: var(--surface);
+}
+
+.drawer__header {
+	display: flex;
+	gap: var(--sp-2);
+	align-items: center;
+	justify-content: space-between;
+	padding: var(--sp-3) var(--sp-4);
+	border-bottom: 1px solid var(--border);
+}
+
+.drawer__body {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding: var(--sp-4);
+}
+
+.preview {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-1);
+	max-width: 360px;
+	padding: var(--sp-3);
+	border-radius: 10px;
+	border-top-left-radius: 3px;
+	background: var(--bubble-in);
+	box-shadow: var(--shadow-sm);
+}
+
+.preview__header {
+	font-weight: 700;
+}
+
+.preview__body {
+	white-space: pre-wrap;
+}
+
+.preview__media {
+	display: grid;
+	place-items: center;
+	height: 84px;
+	border: 1px dashed var(--border-strong);
+	border-radius: var(--radius);
+	color: var(--text-faint);
+	font-size: var(--fs-sm);
+}
+
+/* A media header resolved through its `example.header_handle` (SPEC §2.7). */
+.preview__media-image {
+	display: block;
+	width: 100%;
+	max-height: 180px;
+	border-radius: var(--radius);
+	object-fit: cover;
+}
+
+.preview__buttons {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-1);
+	margin-top: var(--sp-2);
+	padding-top: var(--sp-2);
+	border-top: 1px solid var(--border);
+}
+
+.preview__button {
+	padding: 3px;
+	border-radius: var(--radius);
+	color: var(--accent);
+	font-size: var(--fs-sm);
+	text-align: center;
+}
+
+.placeholder {
+	padding: 0 2px;
+	border-radius: 3px;
+	background: var(--warn-soft);
+	color: var(--warn);
+	font-family: var(--mono);
+	font-size: var(--fs-sm);
+}
+
+.is-current {
+	border-color: var(--accent);
+	color: var(--accent);
+	font-weight: 700;
+}
+
+/* Webhooks --------------------------------------------------------------- */
+
+.target {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sp-2);
+	align-items: center;
+	padding: var(--sp-2) var(--sp-4);
+	border-bottom: 1px solid var(--border);
+	background: var(--surface-2);
+}
+
+.target__url {
+	overflow: hidden;
+	max-width: 44ch;
+	font-size: var(--fs-sm);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.page__body--flush {
+	padding: 0;
+}
+
+/* Settings --------------------------------------------------------------- */
+
+/*
+ * Settings is a document: six unrelated subjects in one column. The anchor row is what makes it
+ * navigable without a second pane — it sticks to the top of the scroller, so "danger zone" is one
+ * click away from wherever the reading got to.
+ */
+.subnav {
+	position: sticky;
+	top: 0;
+	z-index: 3;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sp-1);
+	/* The top padding replaces the scroller's own (see .page__body--anchored): a sticky child of
+	   a padded scroller pins below the padding, leaving a strip that scrolled text stays visible
+	   through — so the scroller goes unpadded at the top and the bar carries the inset itself. */
+	padding: var(--sp-3) 0 var(--sp-2);
+	border-bottom: 1px solid var(--border);
+	background: var(--bg);
+}
+
+.subnav__link {
+	padding: 3px var(--sp-2);
+	border-radius: var(--radius);
+	color: var(--text-muted);
+	font-size: var(--fs-sm);
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.subnav__link:hover {
+	background: var(--surface-2);
+	color: var(--text);
+}
+
+/* Clear of the sticky anchor row (~41px tall), so a jumped-to heading is not hiding under it. */
+.section {
+	scroll-margin-top: 56px;
+}
+
+/* Subjects breathe: the stack's gap spaces things inside a section, not the sections themselves. */
+.section + .section {
+	margin-top: var(--sp-4);
+}
+
+.section__title {
+	font-size: var(--fs-lg);
+}
+
+/* A table wider than the column scrolls inside it; the page itself never scrolls sideways. */
+.table-scroll {
+	overflow-x: auto;
+}
+
+/* Accounts: one collapsible card per WABA ---------------------------------- */
+
+.waba__heading {
+	min-width: 0;
+	margin: 0;
+}
+
+.waba__toggle {
+	display: flex;
+	gap: var(--sp-2);
+	align-items: center;
+	padding: 0;
+	border: none;
+	background: none;
+	color: var(--text);
+	font: inherit;
+	font-size: var(--fs-lg);
+	font-weight: 600;
+	text-align: left;
+	cursor: pointer;
+}
+
+.waba__caret {
+	color: var(--text-faint);
+	font-size: var(--fs-sm);
+}
+
+.settings__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: var(--sp-3);
+}
+
+.settings__input {
+	width: auto;
+	min-width: 180px;
+}
+
+/* A count, a status code, a number of seconds: room for four or five digits and no more. */
+.settings__input--narrow {
+	width: 9ch;
+	min-width: 9ch;
+}
+
+.settings__list {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: var(--sp-2);
+	margin: 0;
+}
+
+.settings__list div {
+	display: flex;
+	gap: var(--sp-2);
+	align-items: baseline;
+}
+
+.settings__list dt {
+	min-width: 8ch;
+	color: var(--text-muted);
+	font-size: var(--fs-xs);
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.settings__list dd {
+	margin: 0;
+}
+
+.card--danger {
+	border-color: var(--danger);
+}
+
+/* A heading inside a card, for the two halves of the danger zone. */
+.card__subtitle {
+	margin: 0;
+	color: var(--text);
+	font-size: var(--fs-sm);
+	font-weight: 600;
+}
+
+.rule {
+	width: 100%;
+	height: 0;
+	margin: 0;
+	border: 0;
+	border-top: 1px solid var(--border);
+}

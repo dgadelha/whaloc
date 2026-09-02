@@ -1,0 +1,22 @@
+{
+	"entry": [
+		{
+			"id": "102290129340398",
+			"time": 1751247548,
+			"changes": [
+				{
+					"value": {
+						"event": "APPROVED",
+						"message_template_id": 1689556908129832,
+						"message_template_name": "order_confirmation",
+						"message_template_language": "en-US",
+						"reason": "NONE",
+						"message_template_category": "UTILITY"
+					},
+					"field": "message_template_status_update"
+				}
+			]
+		}
+	],
+	"object": "whatsapp_business_account"
+}

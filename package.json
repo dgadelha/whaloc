@@ -1,0 +1,45 @@
+{
+	"name": "whaloc",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"description": "Local emulator of the Meta WhatsApp Cloud API",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/dgadelha/whaloc.git"
+	},
+	"homepage": "https://github.com/dgadelha/whaloc#readme",
+	"bugs": "https://github.com/dgadelha/whaloc/issues",
+	"license": "MIT",
+	"workspaces": [
+		"packages/shared",
+		"packages/server",
+		"packages/web"
+	],
+	"engines": {
+		"node": ">=24.0.0",
+		"npm": ">=11.0.0"
+	},
+	"scripts": {
+		"build": "npm run build --workspace @whaloc/shared && npm run build --workspace @whaloc/server && npm run build --workspace @whaloc/web",
+		"dev": "concurrently --kill-others-on-fail --names server,web --prefix-colors blue,green \"npm run dev --workspace @whaloc/server\" \"npm run dev --workspace @whaloc/web\"",
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"lint": "eslint .",
+		"lint:fix": "eslint . --fix",
+		"start": "npm run start --workspace @whaloc/server",
+		"test": "npm run test --workspaces --if-present",
+		"typecheck": "npm run typecheck --workspaces --if-present"
+	},
+	"devDependencies": {
+		"@eslint/js": "^10.0.1",
+		"concurrently": "^10.0.5",
+		"eslint": "^10.9.1",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-prettier": "^5.5.6",
+		"eslint-plugin-unicorn": "^74.0.0",
+		"prettier": "^3.9.6",
+		"typescript": "^6.0.3",
+		"typescript-eslint": "^8.69.0"
+	}
+}

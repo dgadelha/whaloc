@@ -1,0 +1,55 @@
+import {
+	CODE_VERIFICATION_STATUSES as SHARED_CODE_VERIFICATION_STATUSES,
+	MESSAGE_DIRECTIONS as SHARED_MESSAGE_DIRECTIONS,
+	MESSAGE_STATUSES as SHARED_MESSAGE_STATUSES,
+	MESSAGE_TYPES as SHARED_MESSAGE_TYPES,
+	NAME_STATUSES as SHARED_NAME_STATUSES,
+	PHONE_NUMBER_STATUSES as SHARED_PHONE_NUMBER_STATUSES,
+	QUALITY_RATINGS as SHARED_QUALITY_RATINGS,
+	TEMPLATE_CATEGORIES as SHARED_TEMPLATE_CATEGORIES,
+	TEMPLATE_PARAMETER_FORMATS as SHARED_TEMPLATE_PARAMETER_FORMATS,
+	TEMPLATE_STATUSES as SHARED_TEMPLATE_STATUSES,
+	THROUGHPUT_LEVELS as SHARED_THROUGHPUT_LEVELS,
+	VERIFICATION_CODE_METHODS as SHARED_VERIFICATION_CODE_METHODS,
+} from "@whaloc/shared";
+import { describe, expect, it } from "vitest";
+import {
+	QUALITY_RATINGS,
+	TEMPLATE_CATEGORIES,
+	TEMPLATE_PARAMETER_FORMATS,
+	THROUGHPUT_LEVELS,
+} from "../config/index.ts";
+import {
+	CODE_VERIFICATION_STATUSES,
+	MESSAGE_DIRECTIONS,
+	MESSAGE_STATUSES,
+	MESSAGE_TYPES,
+	NAME_STATUSES,
+	PHONE_NUMBER_STATUSES,
+	TEMPLATE_STATUSES,
+	VERIFICATION_CODE_METHODS,
+} from "../db/index.ts";
+
+/**
+ * The control-plane contract declares the same vocabulary as the database schema, because the
+ * web package cannot import from the server (SPEC §5, §8). Nothing enforces that at compile
+ * time — the DTO mappers would happily widen a type — so it is enforced here instead.
+ */
+describe("@whaloc/shared and the server agree on the vocabulary", () => {
+	it.each([
+		["message directions", MESSAGE_DIRECTIONS, SHARED_MESSAGE_DIRECTIONS],
+		["message statuses", MESSAGE_STATUSES, SHARED_MESSAGE_STATUSES],
+		["message types", MESSAGE_TYPES, SHARED_MESSAGE_TYPES],
+		["template statuses", TEMPLATE_STATUSES, SHARED_TEMPLATE_STATUSES],
+		["template categories", TEMPLATE_CATEGORIES, SHARED_TEMPLATE_CATEGORIES],
+		["template parameter formats", TEMPLATE_PARAMETER_FORMATS, SHARED_TEMPLATE_PARAMETER_FORMATS],
+		["quality ratings", QUALITY_RATINGS, SHARED_QUALITY_RATINGS],
+		["throughput levels", THROUGHPUT_LEVELS, SHARED_THROUGHPUT_LEVELS],
+		["phone number statuses", PHONE_NUMBER_STATUSES, SHARED_PHONE_NUMBER_STATUSES],
+		["code verification statuses", CODE_VERIFICATION_STATUSES, SHARED_CODE_VERIFICATION_STATUSES],
+		["name statuses", NAME_STATUSES, SHARED_NAME_STATUSES],
+		["verification code methods", VERIFICATION_CODE_METHODS, SHARED_VERIFICATION_CODE_METHODS],
+	])("on %s", (_name, server, shared) => {
+		expect([...shared]).toEqual([...server]);
+	});
+});

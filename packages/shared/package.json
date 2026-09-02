@@ -1,0 +1,32 @@
+{
+	"name": "@whaloc/shared",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"description": "Shared zod schemas and TypeScript types for the whaloc control-plane API and WebSocket events",
+	"license": "MIT",
+	"exports": {
+		".": {
+			"development": "./src/index.ts",
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "tsc -p tsconfig.build.json",
+		"test": "vitest run",
+		"test:watch": "vitest watch",
+		"typecheck": "tsc"
+	},
+	"dependencies": {
+		"zod": "^4.5.4"
+	},
+	"devDependencies": {
+		"@types/node": "^24.13.3",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.11"
+	}
+}

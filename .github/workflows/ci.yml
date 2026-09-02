@@ -1,0 +1,65 @@
+name: CI
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+
+    # The S3 media backend (SPEC §6) is tested against a real S3-compatible server. The
+    # `edge-cicd` tag is the one MinIO publishes for exactly this: its CMD already starts the
+    # server, which a service container cannot pass arguments to. Without the variables below
+    # those specs skip themselves, which is what keeps `npm test` green off CI.
+    services:
+      minio:
+        image: minio/minio:edge-cicd
+        env:
+          MINIO_ROOT_USER: whaloc
+          MINIO_ROOT_PASSWORD: whaloc-secret
+        ports:
+          - 9000:9000
+        options: >-
+          --health-cmd "curl -sf http://localhost:9000/minio/health/live"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js 📦
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies 🔧
+        run: npm ci
+
+      - name: Lint 🚨
+        run: npm run lint
+
+      - name: Typecheck 🔍
+        run: npm run typecheck
+
+      - name: Test 🧪
+        run: npm test
+        env:
+          WHALOC_TEST_S3_ENDPOINT: http://127.0.0.1:9000
+          WHALOC_TEST_S3_ACCESS_KEY_ID: whaloc
+          WHALOC_TEST_S3_SECRET_ACCESS_KEY: whaloc-secret
+
+      - name: Build 🚚
+        run: npm run build

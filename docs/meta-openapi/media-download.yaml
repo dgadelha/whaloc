@@ -1,0 +1,192 @@
+---
+openapi: 3.1.0
+info:
+  title: 'WhatsApp Cloud API - Media Download API'
+  version: v25.0
+  description: |
+    Download media files using URLs obtained from media retrieval endpoints.
+    Returns binary media content with appropriate MIME type headers.
+    Media URLs expire after 5 minutes and must be re-retrieved if expired.
+  contact:
+    name: WhatsApp Business Messaging Team
+    url: https://developers.facebook.com/support
+  license:
+    name: Meta Platform Terms
+    url: https://developers.facebook.com/terms
+servers:
+  - 
+    url: https://graph.facebook.com
+tags:
+  - 
+    name: Media
+    description: >
+      APIs for downloading WhatsApp media
+      files
+paths:
+  /{Version}/{Media-URL}:
+    get:
+      responses:
+        200:
+          description: Media file downloaded successfully
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/MediaBinaryResponse'
+              examples:
+                Media download:
+                  summary: Binary media content returned
+                  value:
+        400:
+          description: 'Bad Request - Invalid request parameters'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                InvalidTemplateParameters:
+                  summary: Invalid template name or parameters
+                  value:
+                    error:
+                      message: Invalid template name or parameters
+                      type: OAuthException
+                      code: 100
+                MalformedRequest:
+                  summary: Malformed request body
+                  value:
+                    error:
+                      message: Invalid JSON in request body
+                      type: OAuthException
+                      code: 100
+                MissingFeatureSetting:
+                  summary: One feature setting must be specified
+                  value:
+                    error:
+                      message: One feature setting must be specified
+                      type: OAuthException
+                      code: 100
+        401:
+          description: 'Unauthorized - Invalid or missing access token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                InvalidAccessToken:
+                  summary: Invalid OAuth access token
+                  value:
+                    error:
+                      message: Invalid OAuth access token
+                      type: OAuthException
+                      code: 190
+                MissingAccessToken:
+                  summary: Missing access token
+                  value:
+                    error:
+                      message: >
+                        An access token is required to request
+                        this resource
+                      type: OAuthException
+                      code: 104
+        404:
+          description: 'Not Found - Media not found or URL expired'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                PhoneNumberNotFound:
+                  summary: Phone number not found
+                  value:
+                    error:
+                      message: Phone number not found
+                      type: OAuthException
+                      code: 100
+                TemplateNotFound:
+                  summary: Template not found
+                  value:
+                    error:
+                      message: Template not found
+                      type: OAuthException
+                      code: 132000
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                UnexpectedError:
+                  summary: Unexpected server error
+                  value:
+                    error:
+                      message: An unexpected error occurred
+                      type: OAuthException
+                      code: 1
+      summary: Download Media
+      description: |
+        Download media files using URLs obtained from media retrieval endpoints.
+        Requires User Access Token with whatsapp_business_messaging permission.
+        Media URLs expire after 5 minutes and must be re-retrieved if expired.
+        Returns binary content with appropriate MIME type headers.
+      operationId: downloadMedia
+      tags:
+        - Media
+    parameters:
+      - 
+        name: User-Agent
+        in: header
+        description: >
+          The user agent string identifying the
+          client software making the request.
+        required: false
+        schema:
+          type: string
+          default: >
+            Meta-Business-Messaging-OpenAPI/1.0.0;spec=2025-10-21
+          example: >
+            Meta-Business-Messaging-OpenAPI/1.0.0;spec=2025-10-21
+          pattern: '^[a-zA-Z0-9\-_]+\/[0-9]+\.[0-9]+\.[0-9]+(;[a-zA-Z0-9\-=\.]+)?(\s+[a-zA-Z0-9\-_]+\/[0-9\-\.]+)?$'
+      - 
+        name: Authorization
+        in: header
+        description: |
+          Bearer token for API authentication. This should be a valid access token obtained through the appropriate OAuth flow or system user token.
+        required: true
+        schema:
+          type: string
+          example: Bearer EAABwzLixnjYBOzYmNMJJGfHq9DgNh...
+          pattern: '^Bearer\s+[A-Za-z0-9\-_.]+.*$'
+      - 
+        name: Version
+        in: path
+        description: Graph API version (e.g., v25.0)
+        required: true
+        schema:
+          type: string
+      - 
+        name: Media-URL
+        in: path
+        description: >
+          The media URL path obtained from media
+          retrieval endpoints
+        required: true
+        schema:
+          type: string
+components:
+  schemas:
+    MediaBinaryResponse:
+      type: string
+      format: binary
+      description: >
+        Binary content of the requested media
+        file
+  securitySchemes:
+    bearerAuth:
+      type: http
+      description: |
+        System user access token with whatsapp_business_management permission. Format: Bearer YOUR_SYSTEM_USER_ACCESS_TOKEN
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - 
+    bearerAuth: [ ]

@@ -1,0 +1,36 @@
+{
+	"name": "@whaloc/web",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"description": "whaloc web UI: a pure client of the control-plane API and WebSocket",
+	"license": "MIT",
+	"scripts": {
+		"build": "vite build",
+		"dev": "vite",
+		"preview": "vite preview",
+		"test": "vitest run",
+		"test:watch": "vitest watch",
+		"typecheck": "tsc"
+	},
+	"dependencies": {
+		"@whaloc/shared": "*",
+		"clsx": "^2.1.1",
+		"react": "^19.2.8",
+		"react-dom": "^19.2.8",
+		"react-router": "^8.3.1",
+		"zod": "^4.5.4"
+	},
+	"devDependencies": {
+		"@testing-library/dom": "^10.4.1",
+		"@testing-library/react": "^16.3.3",
+		"@types/node": "^24.13.3",
+		"@types/react": "^19.2.18",
+		"@types/react-dom": "^19.2.5",
+		"@vitejs/plugin-react": "^6.1.1",
+		"jsdom": "^30.0.1",
+		"typescript": "^6.0.3",
+		"vite": "^8.2.2",
+		"vitest": "^4.1.11"
+	}
+}

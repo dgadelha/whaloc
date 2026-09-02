@@ -1,0 +1,100 @@
+/*
+ * Every color, size and duration the UI uses, defined once. The dark block below only
+ * re-points the same names, so a component never asks which theme it is in.
+ */
+
+:root {
+	color-scheme: light dark;
+
+	--bg: #eef1f4;
+	--surface: #ffffff;
+	--surface-2: #f5f7f9;
+	--surface-3: #e9edf1;
+	--border: #dbe1e7;
+	--border-strong: #c3ccd5;
+
+	--text: #16212b;
+	--text-muted: #5b6b7a;
+	--text-faint: #8494a2;
+
+	--accent: #12876f;
+	--accent-hover: #0f7360;
+	--accent-text: #ffffff;
+	--accent-soft: #dff2ed;
+
+	--ok: #1a8f52;
+	--warn: #a9730c;
+	--danger: #c33c33;
+	--info: #2f6dbd;
+	--ok-soft: #dff3e6;
+	--warn-soft: #fbf0d8;
+	--danger-soft: #fae3e1;
+	--info-soft: #e2ecfa;
+	--neutral-soft: #e5eaef;
+
+	--bubble-in: #ffffff;
+	--bubble-out: #d6f2e4;
+	--chat-bg: #e7ebee;
+
+	--font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	--mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+	--fs-xs: 11px;
+	--fs-sm: 12px;
+	--fs-md: 13px;
+	--fs-lg: 15px;
+	--fs-xl: 18px;
+
+	--sp-1: 4px;
+	--sp-2: 8px;
+	--sp-3: 12px;
+	--sp-4: 16px;
+	--sp-5: 24px;
+	--sp-6: 32px;
+
+	--radius-sm: 4px;
+	--radius: 6px;
+	--radius-lg: 10px;
+
+	--shadow-sm: 0 1px 2px rgb(16 33 43 / 8%);
+	--shadow: 0 2px 4px rgb(16 33 43 / 8%), 0 8px 24px rgb(16 33 43 / 8%);
+
+	--list-width: 288px;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #0e1519;
+		--surface: #151f26;
+		--surface-2: #1b262e;
+		--surface-3: #22303a;
+		--border: #263540;
+		--border-strong: #354855;
+
+		--text: #e6edf2;
+		--text-muted: #9cb0bf;
+		--text-faint: #71889a;
+
+		--accent: #2aa88b;
+		--accent-hover: #34bd9d;
+		--accent-text: #06231c;
+		--accent-soft: #14332e;
+
+		--ok: #4ec27f;
+		--warn: #d9a33c;
+		--danger: #e8776b;
+		--info: #6ea8f0;
+		--ok-soft: #14301f;
+		--warn-soft: #33280f;
+		--danger-soft: #351d1b;
+		--info-soft: #17263a;
+		--neutral-soft: #22303a;
+
+		--bubble-in: #1c2830;
+		--bubble-out: #12463a;
+		--chat-bg: #101a20;
+
+		--shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
+		--shadow: 0 2px 4px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 35%);
+	}
+}

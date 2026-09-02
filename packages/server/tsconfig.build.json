@@ -1,0 +1,15 @@
+{
+	// Extends the base config directly (not ./tsconfig.json) so the `development`
+	// export condition is not applied: builds resolve workspace packages to their `dist`.
+	"extends": "../../tsconfig.base.json",
+	"compilerOptions": {
+		"rootDir": "./src",
+		"outDir": "./dist",
+		"declaration": true,
+		"declarationMap": true,
+		"sourceMap": true
+	},
+	"include": ["src/**/*"],
+	// Specs and the fixtures they share never ship in the image.
+	"exclude": ["src/**/*.spec.ts", "src/testing/**"]
+}

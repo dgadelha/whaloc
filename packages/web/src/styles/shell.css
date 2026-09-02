@@ -1,0 +1,399 @@
+/* The frame every view sits in: one top bar, and the full width below it. */
+
+.shell {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+	height: 100%;
+}
+
+.topbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sp-2) var(--sp-3);
+	align-items: center;
+	padding: var(--sp-2) var(--sp-3);
+	border-bottom: 1px solid var(--border);
+	background: var(--surface);
+}
+
+/* A link home (`/`), dressed as the wordmark: no underline, no link color. */
+.topbar__brand {
+	display: flex;
+	flex: none;
+	gap: var(--sp-2);
+	align-items: baseline;
+	color: inherit;
+	text-decoration: none;
+}
+
+.topbar__brand:hover .topbar__brand-name {
+	color: var(--accent);
+}
+
+.topbar__brand-name {
+	font-size: var(--fs-lg);
+	font-weight: 700;
+	letter-spacing: -0.01em;
+}
+
+.topbar__brand-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--accent);
+}
+
+/* The scope, read as a path: account, then number. It is what may shrink when the bar is tight. */
+.topbar__scope {
+	display: flex;
+	flex: 1 1 auto;
+	gap: var(--sp-1);
+	align-items: center;
+	min-width: 0;
+}
+
+.topbar__separator {
+	color: var(--text-faint);
+}
+
+.topbar__tabs {
+	display: flex;
+	flex: none;
+	gap: 2px;
+	margin-left: auto;
+}
+
+.topbar__status {
+	display: flex;
+	flex: none;
+	gap: var(--sp-2);
+	align-items: center;
+}
+
+/* Tabs ------------------------------------------------------------------- */
+
+.tab {
+	display: flex;
+	gap: var(--sp-2);
+	align-items: center;
+	padding: 5px 10px;
+	border-radius: var(--radius);
+	color: var(--text-muted);
+	font-size: var(--fs-md);
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.tab:hover {
+	background: var(--surface-2);
+	color: var(--text);
+}
+
+.tab.is-active {
+	background: var(--accent-soft);
+	color: var(--accent);
+	font-weight: 600;
+}
+
+.tab--disabled {
+	color: var(--text-faint);
+	cursor: not-allowed;
+}
+
+.tab--disabled:hover {
+	background: none;
+	color: var(--text-faint);
+}
+
+.tab__count {
+	padding: 0 6px;
+	border-radius: 999px;
+	background: var(--accent);
+	color: var(--accent-text);
+	font-size: var(--fs-xs);
+	font-weight: 700;
+}
+
+/* Breadcrumb segments ---------------------------------------------------- */
+
+.scope {
+	position: relative;
+	min-width: 0;
+}
+
+.scope__button {
+	display: flex;
+	gap: var(--sp-1);
+	align-items: center;
+	max-width: 26ch;
+	padding: 4px var(--sp-2);
+	border: 1px solid transparent;
+	border-radius: var(--radius);
+	background: none;
+	color: var(--text);
+	font: inherit;
+	font-size: var(--fs-md);
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.scope__button:hover,
+.scope__button[aria-expanded="true"] {
+	border-color: var(--border-strong);
+	background: var(--surface-2);
+}
+
+.scope__button--empty {
+	color: var(--text-faint);
+	font-weight: 400;
+	font-style: italic;
+}
+
+/* A verified name can be long; the bar must not grow a horizontal scrollbar for it. */
+.scope__name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.scope__caret {
+	color: var(--text-faint);
+	font-size: var(--fs-xs);
+}
+
+.scope__menu {
+	position: absolute;
+	top: calc(100% + 4px);
+	left: 0;
+	z-index: 40;
+	display: flex;
+	flex-direction: column;
+	min-width: 260px;
+	max-width: min(420px, 90vw);
+	max-height: 60vh;
+	padding: var(--sp-1);
+	overflow-y: auto;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: var(--surface);
+	box-shadow: var(--shadow);
+}
+
+.scope__item {
+	display: flex;
+	gap: var(--sp-2);
+	align-items: center;
+	padding: 5px var(--sp-2);
+	border: none;
+	border-radius: var(--radius-sm);
+	background: none;
+	color: var(--text);
+	font: inherit;
+	font-size: var(--fs-md);
+	text-align: left;
+	cursor: pointer;
+}
+
+.scope__item:hover,
+.scope__item:focus-visible {
+	background: var(--surface-2);
+}
+
+.scope__item.is-selected {
+	color: var(--accent);
+	font-weight: 600;
+}
+
+.scope__item-label {
+	overflow: hidden;
+	flex: 1;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.scope__item-hint {
+	flex: none;
+	color: var(--text-faint);
+	font-family: var(--mono);
+	font-size: var(--fs-xs);
+}
+
+/* The action that creates the next one, set apart from the things that exist. */
+.scope__item--action {
+	margin-top: var(--sp-1);
+	padding-top: var(--sp-2);
+	border-top: 1px solid var(--border);
+	border-radius: 0;
+	color: var(--accent);
+	font-weight: 600;
+}
+
+/*
+ * Narrow: the tabs drop to their own row rather than squeezing the scope into two characters.
+ * The bar grows a line; nothing scrolls sideways.
+ */
+@media (width <= 860px) {
+	.topbar__tabs {
+		order: 3;
+		flex: 1 1 100%;
+		margin-left: 0;
+	}
+
+	.topbar__status {
+		margin-left: auto;
+	}
+}
+
+/* Content ---------------------------------------------------------------- */
+
+.content {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	height: 100%;
+	overflow: hidden;
+}
+
+.page {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.page__header {
+	display: flex;
+	gap: var(--sp-3);
+	align-items: center;
+	padding: var(--sp-3) var(--sp-4);
+	border-bottom: 1px solid var(--border);
+	background: var(--surface);
+}
+
+/* A header carrying a filter bar has to wrap on a narrow window instead of squeezing. */
+.page__header--wrap {
+	flex-wrap: wrap;
+	row-gap: var(--sp-2);
+}
+
+.page__title {
+	display: flex;
+	gap: var(--sp-2);
+	align-items: baseline;
+}
+
+.page__body {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+	padding: var(--sp-4);
+}
+
+/* A body whose column starts with a sticky anchor row: the row pins flush only when the scroller
+   has no top padding of its own (the row carries the inset instead — see .subnav). */
+.page__body--anchored {
+	padding-top: 0;
+}
+
+/*
+ * A view whose body reads as a column of prose and cards rather than a full-bleed table: bounded,
+ * so a paragraph does not run the width of an ultrawide monitor, and **centered**, so the bound
+ * does not simply leave everything pinned to the left edge with an empty half beside it. The
+ * bound used to be here without the centering, which is exactly what that looked like.
+ *
+ * It sits inside `.page__body` rather than on it: the scrollbar belongs to the window, not to the
+ * column.
+ */
+.page__column {
+	width: 100%;
+	max-width: 960px;
+	margin-inline: auto;
+}
+
+/* The centered call to action a view shows when its scope has nothing in it yet. */
+.hero {
+	display: grid;
+	gap: var(--sp-3);
+	place-content: center;
+	justify-items: center;
+	height: 100%;
+	padding: var(--sp-6);
+	color: var(--text-muted);
+	text-align: center;
+}
+
+.hero p {
+	max-width: 46ch;
+}
+
+.connection {
+	display: flex;
+	gap: var(--sp-2);
+	align-items: center;
+	padding: 4px var(--sp-2);
+	color: var(--text-muted);
+	font-size: var(--fs-xs);
+	white-space: nowrap;
+}
+
+.connection__dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--text-faint);
+}
+
+.connection--open .connection__dot {
+	background: var(--ok);
+}
+
+.connection--connecting .connection__dot {
+	background: var(--warn);
+	animation: pulse 1.2s ease-in-out infinite;
+}
+
+.connection--closed .connection__dot {
+	background: var(--danger);
+}
+
+/*
+ * Error injection is armed (SPEC §4). It pulses and it is a link: the point of the badge is
+ * that a forgotten rule cannot be mistaken for whaloc misbehaving, so it has to catch the eye
+ * and lead to the switch that turns it off.
+ */
+.connection--injecting {
+	color: var(--danger);
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.connection--injecting:hover {
+	text-decoration: underline;
+}
+
+.connection--injecting .connection__dot {
+	background: var(--danger);
+	animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+	50% {
+		opacity: 0.3;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.connection--connecting .connection__dot,
+	.connection--injecting .connection__dot {
+		animation: none;
+	}
+}
+
+.boot {
+	display: grid;
+	gap: var(--sp-3);
+	place-content: center;
+	height: 100%;
+	color: var(--text-muted);
+	text-align: center;
+}

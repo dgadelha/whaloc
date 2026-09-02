@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="whaloc">
+	<rect width="64" height="64" rx="14" fill="#12876f" />
+	<path
+		d="M14 17h36a4 4 0 0 1 4 4v20a4 4 0 0 1-4 4H32l-12 9v-9h-6a4 4 0 0 1-4-4V21a4 4 0 0 1 4-4z"
+		fill="#ffffff"
+	/>
+	<g fill="#12876f">
+		<circle cx="24" cy="31" r="3.4" />
+		<circle cx="34" cy="31" r="3.4" />
+		<circle cx="44" cy="31" r="3.4" />
+	</g>
+</svg>

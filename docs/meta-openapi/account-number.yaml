@@ -1,0 +1,486 @@
+---
+openapi: 3.1.0
+info:
+  title: 'WhatsApp Business API - WhatsApp Account Number API'
+  version: v25.0
+  description: |
+    API for retrieving WhatsApp Account Number details and configuration information.
+    This endpoint allows businesses to retrieve comprehensive information about their
+    WhatsApp Account Numbers, including status, verification details, and configuration settings.
+  termsOfService: https://developers.facebook.com/terms
+  contact:
+    name: WhatsApp Business Messaging Team
+    url: https://developers.facebook.com/support
+  license:
+    name: Meta Platform Terms
+    url: https://developers.facebook.com/terms
+servers:
+  - 
+    url: https://graph.facebook.com
+    description: Production Graph API server
+tags:
+  - 
+    name: WhatsApp Account Numbers
+    description: >
+      APIs for managing WhatsApp Account
+      Number details and configuration
+paths:
+  /{Version}/{WhatsApp-Account-Number-ID}:
+    get:
+      responses:
+        200:
+          description: >
+            Successfully retrieved WhatsApp Account
+            Number details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhatsAppAccountNumber'
+              examples:
+                verified_account_number:
+                  summary: >
+                    Verified account number with full
+                    details
+                  value:
+                    id: '1234567890123456'
+                    display_phone_number: +1 631-555-5555
+                    verified_name: Jasper's Market
+                    status: CONNECTED
+                    quality_rating: GREEN
+                    country_code: US
+                    country_dial_code: '1'
+                    code_verification_status: VERIFIED
+                    name_status: APPROVED
+                    messaging_limit_tier: TIER_1K
+                    account_mode: LIVE
+                    is_official_business_account: false
+                unverified_account_number:
+                  summary: >
+                    Unverified account number with minimal
+                    details
+                  value:
+                    id: '2345678901234567'
+                    display_phone_number: +1 555-123-4567
+                    status: UNVERIFIED
+                    quality_rating: NA
+                    code_verification_status: NOT_VERIFIED
+                    name_status: NONE
+        400:
+          description: 'Bad Request - Invalid parameters or malformed request'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphAPIError'
+              example:
+                error:
+                  message: 'Invalid parameter: account_number_id must be a valid numeric string'
+                  type: OAuthException
+                  code: 100
+                  fbtrace_id: AXsgnV2Cm3ZMGF3dF_cfYIn
+        401:
+          description: 'Unauthorized - Invalid or missing access token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphAPIError'
+              example:
+                error:
+                  message: Invalid OAuth access token
+                  type: OAuthException
+                  code: 190
+                  error_subcode: 463
+                  fbtrace_id: AXsgnV2Cm3ZMGF3dF_cfYIn
+        403:
+          description: 'Forbidden - Insufficient permissions or access denied'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphAPIError'
+              example:
+                error:
+                  message: >
+                    Your app doesn't have permission to
+                    access this WhatsApp Account Number
+                  type: OAuthException
+                  code: 200
+                  error_subcode: 1349174
+                  fbtrace_id: AXsgnV2Cm3ZMGF3dF_cfYIn
+                  error_user_title: Permission Denied
+                  error_user_msg: >
+                    Your app doesn't have permission to
+                    access this resource
+        404:
+          description: 'Not Found - Account Number ID does not exist or is not accessible'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphAPIError'
+              example:
+                error:
+                  message: WhatsApp Account Number not found
+                  type: GraphMethodException
+                  code: 803
+                  fbtrace_id: AXsgnV2Cm3ZMGF3dF_cfYIn
+        422:
+          description: 'Unprocessable Entity - Request parameters are valid but cannot be processed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphAPIError'
+              example:
+                error:
+                  message: >
+                    The requested fields are not available
+                    for this account number
+                  type: GraphMethodException
+                  code: 100
+                  fbtrace_id: AXsgnV2Cm3ZMGF3dF_cfYIn
+        500:
+          description: 'Internal Server Error - Unexpected server error'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphAPIError'
+              example:
+                error:
+                  message: >
+                    An unexpected error occurred. Please
+                    retry your request
+                  type: GraphMethodException
+                  code: 2
+                  fbtrace_id: AXsgnV2Cm3ZMGF3dF_cfYIn
+                  is_transient: true
+      summary: Get WhatsApp Account Number Details
+      description: |
+        Retrieve comprehensive details about a WhatsApp Account Number, including its current status,
+        verification information, quality rating, and configuration settings.
+        
+        **Use Cases:**
+        - Monitor account number status and quality rating
+        - Verify account number configuration before messaging operations
+        - Check verification and approval status
+        - Retrieve display name and business profile information
+        
+        **Rate Limiting:**
+        Standard Graph API rate limits apply. Use appropriate retry logic with exponential backoff.
+        
+        **Caching:**
+        Account number details can be cached for short periods, but status information may change
+        frequently. Implement appropriate cache invalidation strategies.
+      operationId: getWhatsAppAccountNumberDetails
+      tags:
+        - WhatsApp Account Numbers
+      parameters:
+        - 
+          name: User-Agent
+          in: header
+          description: >
+            The user agent string identifying the
+            client software making the request.
+          required: false
+          schema:
+            type: string
+            default: >
+              Meta-Business-Messaging-OpenAPI/1.0.0;spec=2025-10-21
+            example: >
+              Meta-Business-Messaging-OpenAPI/1.0.0;spec=2025-10-21
+            pattern: '^[a-zA-Z0-9\-_]+\/[0-9]+\.[0-9]+\.[0-9]+(;[a-zA-Z0-9\-=\.]+)?(\s+[a-zA-Z0-9\-_]+\/[0-9\-\.]+)?$'
+        - 
+          name: Authorization
+          in: header
+          description: |
+            Bearer token for API authentication. This should be a valid access token obtained through the appropriate OAuth flow or system user token.
+          required: true
+          schema:
+            type: string
+            example: Bearer EAABwzLixnjYBOzYmNMJJGfHq9DgNh...
+            pattern: '^Bearer\s+[A-Za-z0-9\-_.]+.*$'
+        - 
+          name: Version
+          in: path
+          description: |
+            Graph API version to use for this request. Determines the API behavior and available features.
+          required: true
+          schema:
+            type: string
+            pattern: '^v[0-9]+\.[0-9]+$'
+          example: v25.0
+        - 
+          name: WhatsApp-Account-Number-ID
+          in: path
+          description: |
+            Your WhatsApp Account Number ID. This ID represents the account number entity
+            and can be obtained from your WhatsApp Business Account phone numbers list.
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9]+$'
+          example: '1234567890123456'
+        - 
+          name: fields
+          in: query
+          description: |
+            Comma-separated list of fields to include in the response. If not specified,
+            default fields will be returned (id, display_phone_number, status).
+            Available fields: id, display_phone_number, verified_name, status, quality_rating,
+            country_code, country_dial_code, code_verification_status, name_status,
+            messaging_limit_tier, account_mode, certificate, is_official_business_account,
+            host_platform, is_on_biz_app, is_preverified_number, last_onboarded_time,
+            new_certificate, new_display_name, new_name_status, platform_type
+          required: false
+          schema:
+            type: string
+          example: >
+            id,display_phone_number,status,quality_rating
+components:
+  schemas:
+    WhatsAppAccountNumber:
+      type: object
+      description: >
+        WhatsApp Account Number details and
+        configuration
+      required:
+        - id
+        - display_phone_number
+        - status
+      properties:
+        id:
+          type: string
+          description: >
+            Unique identifier for the WhatsApp
+            Account Number
+          example: '1234567890123456'
+        display_phone_number:
+          type: string
+          description: >
+            Phone number in international format for
+            display purposes
+          example: +1 631-555-5555
+        verified_name:
+          type: string
+          description: >
+            Business name verified for this phone
+            number
+          example: Jasper's Market
+        status:
+          $ref: '#/components/schemas/WhatsAppAccountNumberStatus'
+        quality_rating:
+          $ref: '#/components/schemas/WhatsAppPhoneNumberQualityRating'
+        country_code:
+          type: string
+          description: ISO 3166-1 alpha-2 country code
+          example: US
+        country_dial_code:
+          type: string
+          description: Country dialing code
+          example: '1'
+        code_verification_status:
+          $ref: '#/components/schemas/WhatsAppCodeVerificationStatus'
+        name_status:
+          $ref: '#/components/schemas/WhatsAppDisplayNameStatus'
+        messaging_limit_tier:
+          type: string
+          description: >
+            Current messaging limit tier for the
+            account number
+          example: TIER_1K
+          enum:
+            - TIER_100K
+            - TIER_10K
+            - TIER_1K
+            - TIER_250
+            - TIER_50
+            - TIER_NOT_SET
+            - TIER_UNLIMITED
+        account_mode:
+          $ref: '#/components/schemas/WhatsAppBusinessSandboxEligibility'
+        certificate:
+          type: string
+          description: >
+            Business certificate information for the
+            account number
+          example: certificate_data_placeholder
+        is_official_business_account:
+          type: boolean
+          description: >
+            Whether this is an official business
+            account
+          example: false
+        host_platform:
+          type: string
+          description: >
+            Platform hosting the WhatsApp Business
+            Account phone number
+          example: CLOUD_API
+          enum:
+            - CLOUD_API
+            - ON_PREMISE
+        is_on_biz_app:
+          type: boolean
+          description: >
+            Whether this phone number is connected
+            to the WhatsApp Business App
+          example: false
+        is_preverified_number:
+          type: boolean
+          description: >
+            Whether this phone number was
+            pre-verified
+          example: false
+        last_onboarded_time:
+          type: integer
+          format: int64
+          description: >
+            Unix timestamp of the last onboarding
+            event for this phone number
+          example: 1640995200
+        new_certificate:
+          type: string
+          description: >
+            New business certificate pending
+            approval
+          example: new_certificate_data
+        new_display_name:
+          type: string
+          description: New display name pending approval
+          example: New Business Name
+        new_name_status:
+          $ref: '#/components/schemas/WhatsAppDisplayNameStatus'
+        platform_type:
+          type: string
+          description: Type of platform for the phone number
+          example: CLOUD_API
+          enum:
+            - CLOUD_API
+            - ON_PREMISE
+    WhatsAppAccountNumberStatus:
+      type: string
+      description: >
+        Current status of the WhatsApp Account
+        Number
+      example: CONNECTED
+      enum:
+        - BANNED
+        - CONNECTED
+        - DELETED
+        - DISCONNECTED
+        - FLAGGED
+        - MIGRATED
+        - PENDING
+        - RATE_LIMITED
+        - RESTRICTED
+        - UNKNOWN
+        - UNVERIFIED
+    WhatsAppPhoneNumberQualityRating:
+      type: string
+      description: >
+        Quality rating based on message delivery
+        and user feedback
+      example: GREEN
+      enum:
+        - GREEN
+        - NA
+        - RED
+        - UNKNOWN
+        - YELLOW
+    WhatsAppCodeVerificationStatus:
+      type: string
+      description: >
+        Two-step verification status for the
+        phone number
+      example: VERIFIED
+      enum:
+        - EXPIRED
+        - NOT_VERIFIED
+        - VERIFIED
+    WhatsAppDisplayNameStatus:
+      type: string
+      description: >
+        Status of the display name associated
+        with the phone number
+      example: AVAILABLE_WITHOUT_REVIEW
+      enum:
+        - APPROVED
+        - AVAILABLE_WITHOUT_REVIEW
+        - DECLINED
+        - EXPIRED
+        - NON_EXISTS
+        - NONE
+        - PENDING_REVIEW
+    WhatsAppBusinessSandboxEligibility:
+      type: string
+      description: >
+        Account mode indicating sandbox or live
+        environment
+      example: LIVE
+      enum:
+        - LIVE
+        - SANDBOX
+    GraphAPIError:
+      type: object
+      description: Standard Graph API error response
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - message
+            - type
+            - code
+          properties:
+            message:
+              type: string
+              description: Human-readable error message
+              example: Invalid parameter
+            type:
+              type: string
+              description: Error category type
+              example: OAuthException
+            code:
+              type: integer
+              description: Numeric error code
+              example: 100
+            error_subcode:
+              type: integer
+              description: >
+                More specific error subcode when
+                available
+              example: 33
+            fbtrace_id:
+              type: string
+              description: >
+                Unique identifier for debugging and
+                support requests with Meta
+              example: AXsgnV2Cm3ZMGF3dF_cfYIn
+            is_transient:
+              type: boolean
+              description: >
+                Indicates whether this error is
+                temporary and the request should be
+                retried
+              example: false
+            error_user_title:
+              type: string
+              description: >
+                User-friendly error title for display
+                purposes
+              example: Permission Denied
+            error_user_msg:
+              type: string
+              description: >
+                User-friendly error message for display
+                purposes
+              example: >
+                Your app doesn't have permission to
+                access this resource
+  securitySchemes:
+    bearerAuth:
+      type: http
+      description: |
+        System user access token with whatsapp_business_management permission. Format: Bearer YOUR_SYSTEM_USER_ACCESS_TOKEN
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - 
+    bearerAuth: [ ]

@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+data/
+package-lock.json
+
+# Hand-authored spec and vendored Meta OpenAPI references — kept as written.
+docs/

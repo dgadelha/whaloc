@@ -1,0 +1,34 @@
+{
+	// Shared compiler options for every workspace package. Packages add their own
+	// `include`/`lib`, plus a `tsconfig.build.json` for emitting.
+	"compilerOptions": {
+		// Environment — Node 24 runs the TypeScript sources directly in dev
+		// (`node --experimental-transform-types`), so the module system must be Node's.
+		"module": "nodenext",
+		"moduleResolution": "nodenext",
+		"target": "esnext",
+		"lib": ["esnext"],
+		"types": ["node"],
+		"moduleDetection": "force",
+
+		// Required by Node's type stripping: no enums, namespaces or parameter properties,
+		// relative imports carry their `.ts`/`.tsx` extension and are rewritten on emit.
+		"erasableSyntaxOnly": true,
+		"verbatimModuleSyntax": true,
+		"rewriteRelativeImportExtensions": true,
+		"isolatedModules": true,
+
+		// Type checking
+		"strict": true,
+		"alwaysStrict": true,
+		"noUncheckedIndexedAccess": true,
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		"noUnusedParameters": true,
+		"noFallthroughCasesInSwitch": true,
+		"noPropertyAccessFromIndexSignature": true,
+		"noUncheckedSideEffectImports": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true
+	}
+}

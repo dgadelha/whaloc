@@ -1,0 +1,106 @@
+# Standalone whaloc demo: the emulator plus a webhook receiver that plays the app under test.
+#
+#   docker compose up
+#
+# Then open http://localhost:8080 for the UI and watch `docker compose logs -f webhook-echo`
+# while you send a message through the Graph API mock or the UI. To point a real application
+# at it instead, see docs/integrating.md.
+#
+# The two `${...}` values below are shared by both services, so overriding either one (shell
+# environment or a `.env` file beside this file) keeps whaloc and the receiver in agreement.
+
+name: whaloc
+
+services:
+  whaloc:
+    image: ghcr.io/dgadelha/whaloc:latest
+    # Contributors testing local changes: uncomment to build this checkout instead of pulling.
+    # build: .
+    ports:
+      - "8080:8080"
+    environment:
+      # Where whaloc is reachable *from whoever downloads media*. The generated media URLs and
+      # `paging.next` are built from it. From the host that is the published port; an app in
+      # another compose service on this network would need `http://whaloc:8080`.
+      WHALOC_PUBLIC_URL: http://localhost:8080
+      # The receiver below. Meta's side of the conversation: every inbound message, status
+      # change and template event is POSTed here, signed.
+      WHALOC_WEBHOOK_URL: http://webhook-echo:3001/meta-webhooks
+      WHALOC_APP_SECRET: ${WHALOC_APP_SECRET:-dev-app-secret}
+      WHALOC_WEBHOOK_VERIFY_TOKEN: ${WHALOC_WEBHOOK_VERIFY_TOKEN:-dev-verify-token}
+      # Run the `hub.challenge` handshake at boot, so the logs say up front whether the
+      # receiver is reachable and agrees on the verify token.
+      WHALOC_VERIFY_ON_START: "true"
+      # Uncomment to keep WABAs, conversations, templates and media across restarts. The
+      # default (`:memory:`) starts from the seed every time.
+      # WHALOC_DB_PATH: /data/whaloc.db
+    volumes:
+      # Media bytes live under /data/media; the SQLite file goes next to them when
+      # WHALOC_DB_PATH is set above.
+      - whaloc-data:/data
+    depends_on:
+      - webhook-echo
+
+  # A stand-in for the application under test: echoes the `hub.challenge` handshake, verifies
+  # `X-Hub-Signature-256` against the shared app secret and logs every delivery. Deliberately
+  # inline and dependency-free so this file works on its own.
+  webhook-echo:
+    image: node:24-alpine
+    environment:
+      APP_SECRET: ${WHALOC_APP_SECRET:-dev-app-secret}
+      VERIFY_TOKEN: ${WHALOC_WEBHOOK_VERIFY_TOKEN:-dev-verify-token}
+    command:
+      - node
+      - -e
+      - |
+        const { createServer } = require("node:http");
+        const { createHmac, timingSafeEqual } = require("node:crypto");
+
+        const appSecret = process.env.APP_SECRET ?? "";
+        const verifyToken = process.env.VERIFY_TOKEN ?? "";
+
+        /** whaloc signs the exact bytes it sends, so the raw buffer is what gets hashed. */
+        function checkSignature(header, body) {
+          if (appSecret === "") return "unsigned (no APP_SECRET set)";
+          if (typeof header !== "string") return "MISSING";
+          const expected = "sha256=" + createHmac("sha256", appSecret).update(body).digest("hex");
+          const [a, b] = [Buffer.from(header), Buffer.from(expected)];
+          return a.length === b.length && timingSafeEqual(a, b) ? "valid" : "INVALID";
+        }
+
+        /** One readable line per delivery: which event, and what it carried. */
+        function summarize(body) {
+          const change = JSON.parse(body.toString("utf8")).entry?.[0]?.changes?.[0];
+          const value = change?.value ?? {};
+          const parts = [];
+          for (const message of value.messages ?? []) parts.push("inbound " + message.type + " " + message.id);
+          for (const status of value.statuses ?? []) parts.push(status.status + " " + status.id);
+          if (value.event !== undefined) parts.push(value.event + " " + (value.message_template_name ?? ""));
+          return (change?.field ?? "?") + (parts.length > 0 ? " :: " + parts.join(", ") : "");
+        }
+
+        createServer((req, res) => {
+          const url = new URL(req.url ?? "/", "http://localhost");
+
+          if (req.method === "GET") {
+            const challenge = url.searchParams.get("hub.challenge") ?? "";
+            const ok = url.searchParams.get("hub.mode") === "subscribe" && url.searchParams.get("hub.verify_token") === verifyToken;
+            console.log("[handshake] " + (ok ? "verified, echoing " + challenge : "rejected"));
+            res.writeHead(ok ? 200 : 403, { "content-type": "text/plain" }).end(ok ? challenge : "forbidden");
+            return;
+          }
+
+          const chunks = [];
+          req.on("data", chunk => chunks.push(chunk));
+          req.on("end", () => {
+            const body = Buffer.concat(chunks);
+            let summary = "unparseable body";
+            try { summary = summarize(body); } catch {}
+            console.log("[webhook] signature=" + checkSignature(req.headers["x-hub-signature-256"], body) + " " + summary);
+            console.log("          " + body.toString("utf8"));
+            res.writeHead(200, { "content-type": "application/json" }).end('{"ok":true}');
+          });
+        }).listen(3001, () => console.log("webhook-echo listening on :3001 (POST /meta-webhooks)"));
+
+volumes:
+  whaloc-data:

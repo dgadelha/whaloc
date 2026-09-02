@@ -1,0 +1,10 @@
+{
+	"extends": "../../tsconfig.base.json",
+	"compilerOptions": {
+		// Workspace packages are consumed from source while developing and type checking;
+		// the `development` export condition points at `src/`, the default one at `dist/`.
+		"customConditions": ["development"],
+		"noEmit": true
+	},
+	"include": ["src/**/*", "vitest.config.ts"]
+}

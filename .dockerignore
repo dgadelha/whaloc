@@ -1,0 +1,28 @@
+# Everything the image builds for itself, plus everything that would only invalidate the
+# build cache. The build stage installs from `package-lock.json` and compiles the sources, so a
+# local `node_modules` or `dist` must never leak into the context.
+node_modules
+**/node_modules
+dist
+**/dist
+coverage
+**/coverage
+*.tsbuildinfo
+
+# Local state: the SQLite file and the media root a non-container run creates.
+data
+
+.git
+.gitignore
+.github
+.DS_Store
+*.log
+.env
+.env.*
+
+# The image never reads these; keeping them out keeps the context (and the cache key) small.
+Dockerfile
+.dockerignore
+docker-compose.yml
+docs
+README.md

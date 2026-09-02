@@ -1,0 +1,18 @@
+{
+	"entry": [
+		{
+			"id": "102290129340398",
+			"time": 1748454394,
+			"changes": [
+				{
+					"value": {
+						"max_daily_conversation_per_phone": 1000,
+						"max_phone_numbers_per_business": 25
+					},
+					"field": "business_capability_update"
+				}
+			]
+		}
+	],
+	"object": "whatsapp_business_account"
+}
