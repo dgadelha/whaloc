@@ -1,5 +1,5 @@
 import { BSUID_PATTERN } from "@whaloc/shared";
-import type { MessageRecord, Repositories } from "../db/index.ts";
+import type { MessageRecord, Repositories, TemplateSnapshotRecord } from "../db/index.ts";
 import type { OutboundMessageEvents } from "./domain-events.ts";
 import { createWamid, defaultRandomBytes, type RandomBytes } from "./ids.ts";
 import { phoneNumberNotRegisteredError, unknownObjectError } from "./meta-errors.ts";
@@ -52,10 +52,14 @@ export class MessageService {
 	/**
 	 * A `template` send only goes through when the template exists for the WABA that owns the
 	 * sending phone number, is approved, and its parameters line up (SPEC §2).
+	 *
+	 * The template that passed is handed back to be frozen on the message (SPEC §2.5): the send
+	 * names it and fills its placeholders, but the text it fills lives in the template, which can
+	 * be edited or deleted long after the message was delivered.
 	 */
-	async #assertTemplateSendable(wabaId: string, request: SendMessageRequest): Promise<void> {
+	async #sendableTemplateSnapshot(wabaId: string, request: SendMessageRequest): Promise<TemplateSnapshotRecord | null> {
 		if (request.type !== "template") {
-			return;
+			return null;
 		}
 
 		const { name, language, components } = request.template;
@@ -63,6 +67,8 @@ export class MessageService {
 
 		assertTemplateIsSendable(template, name, language.code);
 		assertTemplateParameters(template, components);
+
+		return { parameterFormat: template.parameterFormat, components: template.components };
 	}
 
 	/**
@@ -122,8 +128,8 @@ export class MessageService {
 		}
 
 		const { input, waId } = await this.#resolveRecipient(request);
+		const templateSnapshot = await this.#sendableTemplateSnapshot(phoneNumber.wabaId, request);
 
-		await this.#assertTemplateSendable(phoneNumber.wabaId, request);
 		await this.#ensureContact(waId);
 
 		const message = await this.#repositories.messages.insert({
@@ -138,6 +144,7 @@ export class MessageService {
 			// Stored rather than echoed on the send response, because Meta only ever gives it back
 			// on the status webhooks of this message (SPEC §2.5).
 			bizOpaqueCallbackData: request.biz_opaque_callback_data ?? null,
+			templateSnapshot,
 		});
 
 		this.#events.onOutboundAccepted(message);

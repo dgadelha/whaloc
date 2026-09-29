@@ -75,6 +75,7 @@ export function toMessageDto(record: MessageRecord): Message {
 		status: record.status,
 		error: record.error,
 		...(record.bizOpaqueCallbackData !== null && { bizOpaqueCallbackData: record.bizOpaqueCallbackData }),
+		...(record.templateSnapshot !== null && { templateSnapshot: record.templateSnapshot }),
 		replyTo: record.replyTo,
 		timestamp: record.timestamp,
 		createdAt: record.createdAt,

@@ -1,5 +1,17 @@
 import { z } from "zod";
 import { jsonObjectSchema, messageDirectionSchema, messageStatusSchema, messageTypeSchema } from "./common.ts";
+import { templateSchema } from "./templates.ts";
+
+/**
+ * The template definition a `template` send was validated against, frozen on the message
+ * (SPEC §2.5). The send itself only names the template and carries the parameters; the text
+ * those parameters fill lives here, so a bubble can render what was delivered even after the
+ * template is edited, deleted or never imported. Picked from the template itself, so the two
+ * cannot drift: `parameterFormat` binds the parameters, `components` are stored verbatim.
+ */
+export const templateSnapshotSchema = templateSchema.pick({ parameterFormat: true, components: true });
+
+export type TemplateSnapshot = z.infer<typeof templateSnapshotSchema>;
 
 /** One stored message, in either direction (SPEC §5). */
 export const messageSchema = z.object({
@@ -18,6 +30,12 @@ export const messageSchema = z.object({
 	 * for it (SPEC §2.5). Absent for a send that named none, and for every inbound message.
 	 */
 	bizOpaqueCallbackData: z.string().nullable().optional(),
+	/**
+	 * The template a `template` send was validated against. Control plane only — the Graph
+	 * surface and the webhooks never carry it. Absent for every other type, and for a template
+	 * message stored before whaloc kept one.
+	 */
+	templateSnapshot: templateSnapshotSchema.nullable().optional(),
 	replyTo: z.string().nullable(),
 	timestamp: z.iso.datetime(),
 	createdAt: z.iso.datetime(),

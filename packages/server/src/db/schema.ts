@@ -171,6 +171,12 @@ export interface MessageTable {
 	 * webhook this message produces. `null` for a send that named none and for anything inbound.
 	 */
 	biz_opaque_callback_data: string | null;
+	/**
+	 * JSON object `{parameter_format, components}`: the template a `template` send was validated
+	 * against (SPEC §2.5). Control plane only; `null` for every other type and for template
+	 * messages stored before it was kept.
+	 */
+	template_snapshot: string | null;
 	/** When the message was sent or received — the value webhooks report as Unix seconds. */
 	timestamp: string;
 	created_at: string;

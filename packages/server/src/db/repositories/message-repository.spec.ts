@@ -65,6 +65,7 @@ describe("MessageRepository", () => {
 			status: "accepted",
 			error: null,
 			bizOpaqueCallbackData: null,
+			templateSnapshot: null,
 			replyTo: null,
 			timestamp: "2026-01-01T00:00:00.000Z",
 			createdAt: "2026-01-01T00:00:00.000Z",
@@ -83,6 +84,27 @@ describe("MessageRepository", () => {
 		const found = await repository.findById(WAMID);
 
 		expect(found?.payload).toEqual(payload);
+	});
+
+	it("round-trips the template a send was validated against", async () => {
+		const templateSnapshot = {
+			parameterFormat: "NAMED" as const,
+			components: [
+				{ type: "BODY", text: "Hi {{first_name}}", example: { body_text_named_params: [] } },
+				{ type: "BUTTONS", buttons: [{ type: "QUICK_REPLY", text: "Stop" }] },
+			],
+		};
+
+		await insertDefault({ type: "template", payload: { template: { name: "hi" } }, templateSnapshot });
+
+		expect(await repository.findById(WAMID)).toMatchObject({ templateSnapshot });
+		// Stored in the `templates` table's own spelling, since a snapshot dumps the raw column.
+		expect(await handle.db.selectFrom("messages").select("template_snapshot").executeTakeFirstOrThrow()).toEqual({
+			template_snapshot: JSON.stringify({
+				parameter_format: "NAMED",
+				components: templateSnapshot.components,
+			}),
+		});
 	});
 
 	it("defaults the message timestamp to its creation time", async () => {

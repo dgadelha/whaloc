@@ -1,13 +1,36 @@
 import { sql, type Kysely } from "kysely";
+import { z } from "zod";
+import { TEMPLATE_PARAMETER_FORMATS } from "../../config/index.ts";
 import {
 	decodeJsonColumn,
 	decodeNullableJsonColumn,
 	encodeJsonColumn,
+	jsonObjectArraySchema,
 	jsonObjectSchema,
 	type JsonObject,
 } from "../json-column.ts";
 import { nowIso } from "../../timestamps.ts";
+import type { TemplateRecord } from "./template-repository.ts";
 import type { Database, MessageDirection, MessageStatus, MessageTable, MessageType } from "../schema.ts";
+
+/** The template a `template` send was validated against, as it stood at send time (SPEC §2.5). */
+export type TemplateSnapshotRecord = Pick<TemplateRecord, "parameterFormat" | "components">;
+
+/** The column spells its keys the way the `templates` table does. */
+const templateSnapshotColumnSchema = z.object({
+	parameter_format: z.enum(TEMPLATE_PARAMETER_FORMATS),
+	components: jsonObjectArraySchema,
+});
+
+function decodeTemplateSnapshot(raw: string | null): TemplateSnapshotRecord | null {
+	const column = decodeNullableJsonColumn(templateSnapshotColumnSchema, raw, "messages.template_snapshot");
+
+	return column === null ? null : { parameterFormat: column.parameter_format, components: column.components };
+}
+
+function encodeTemplateSnapshot(snapshot: TemplateSnapshotRecord): string {
+	return encodeJsonColumn({ parameter_format: snapshot.parameterFormat, components: snapshot.components });
+}
 
 export interface MessageRecord {
 	id: string;
@@ -21,6 +44,8 @@ export interface MessageRecord {
 	replyTo: string | null;
 	/** The `biz_opaque_callback_data` of the send, echoed on its status webhooks (SPEC §2.5). */
 	bizOpaqueCallbackData: string | null;
+	/** What a `template` send was validated against; `null` for anything else (SPEC §2.5). */
+	templateSnapshot: TemplateSnapshotRecord | null;
 	timestamp: string;
 	createdAt: string;
 	updatedAt: string;
@@ -36,6 +61,7 @@ export interface InsertMessageInput {
 	status?: MessageStatus;
 	replyTo?: string | null;
 	bizOpaqueCallbackData?: string | null;
+	templateSnapshot?: TemplateSnapshotRecord | null;
 	/** When the message was sent or received; defaults to now. */
 	timestamp?: string;
 	createdAt?: string;
@@ -78,6 +104,7 @@ function toRecord(row: MessageTable): MessageRecord {
 		error: decodeNullableJsonColumn(jsonObjectSchema, row.error, "messages.error"),
 		replyTo: row.reply_to,
 		bizOpaqueCallbackData: row.biz_opaque_callback_data,
+		templateSnapshot: decodeTemplateSnapshot(row.template_snapshot),
 		timestamp: row.timestamp,
 		createdAt: row.created_at,
 		updatedAt: row.updated_at,
@@ -108,6 +135,7 @@ export class MessageRepository {
 				error: null,
 				reply_to: input.replyTo ?? null,
 				biz_opaque_callback_data: input.bizOpaqueCallbackData ?? null,
+				template_snapshot: input.templateSnapshot ? encodeTemplateSnapshot(input.templateSnapshot) : null,
 				timestamp: input.timestamp ?? createdAt,
 				created_at: createdAt,
 				updated_at: createdAt,

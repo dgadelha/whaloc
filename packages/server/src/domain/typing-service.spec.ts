@@ -54,6 +54,7 @@ describe("TypingService", () => {
 			status: "accepted",
 			error: null,
 			bizOpaqueCallbackData: null,
+			templateSnapshot: null,
 			replyTo: null,
 			timestamp: "2026-09-01T12:00:00.000Z",
 			createdAt: "2026-09-01T12:00:00.000Z",

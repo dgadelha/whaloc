@@ -32,6 +32,7 @@ export {
 	type InsertMessageInput,
 	type ListConversationQuery,
 	type MessageRecord,
+	type TemplateSnapshotRecord,
 	type UpdateMessageStatusInput,
 } from "./message-repository.ts";
 export {

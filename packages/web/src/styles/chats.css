@@ -350,6 +350,101 @@
 	margin-top: var(--sp-1);
 }
 
+/* A template message as the recipient sees it (SPEC §2.5): the content, then one full-width
+   row per button, edge to edge across the bubble the way WhatsApp separates them. */
+.bubble__template {
+	--template-rule: rgb(0 0 0 / 8%);
+
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	min-width: min(240px, 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+	.bubble__template {
+		--template-rule: rgb(255 255 255 / 10%);
+	}
+}
+
+.bubble__template .preview__media,
+.bubble__template .preview__media-image {
+	margin-bottom: 2px;
+}
+
+/* WhatsApp spans a media header across the whole bubble, cropping rather than letterboxing,
+   where a plain media message keeps the image's own size. */
+.bubble__template .media,
+.bubble__template .media__image,
+.bubble__template .media__video {
+	display: block;
+	width: 100%;
+	max-width: none;
+}
+
+.bubble__template .media__image,
+.bubble__template .media__video {
+	max-height: 320px;
+	object-fit: cover;
+}
+
+.template__buttons {
+	display: flex;
+	flex-direction: column;
+	/* Cancels the bubble's horizontal padding, so the rules run the full width. */
+	margin: var(--sp-1) -9px 0;
+}
+
+.template__button {
+	display: flex;
+	gap: 6px;
+	align-items: baseline;
+	justify-content: center;
+	padding: 7px 9px;
+	border-top: 1px solid var(--template-rule);
+	color: var(--info);
+	font-weight: 500;
+	text-decoration: none;
+}
+
+a.template__button:hover {
+	text-decoration: underline;
+}
+
+.template__button-icon {
+	font-size: var(--fs-sm);
+}
+
+.template__button-detail {
+	color: var(--text-faint);
+	font-size: var(--fs-xs);
+	font-weight: 400;
+}
+
+.template__meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sp-1);
+	align-items: center;
+	padding-top: 3px;
+	border-top: 1px solid var(--template-rule);
+	font-size: var(--fs-xs);
+}
+
+.template__raw-toggle {
+	margin-left: auto;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--accent);
+	font: inherit;
+	cursor: pointer;
+}
+
+.template__raw-toggle:hover {
+	text-decoration: underline;
+}
+
 .ticks {
 	display: inline-flex;
 	align-items: center;
