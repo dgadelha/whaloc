@@ -148,11 +148,16 @@ services:
       RUSTFS_SECRET_KEY: whaloc-secret
     ports: ["9000:9000", "9001:9001"]
     volumes: ["rustfs-data:/data"]
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9000/health"]
+      interval: 2s
+      retries: 30
 
   # whaloc never creates the bucket; this makes it once and exits (a rerun is harmless).
   rustfs-bucket:
     image: amazon/aws-cli
-    depends_on: [rustfs]
+    depends_on:
+      rustfs: { condition: service_healthy }
     environment:
       AWS_ACCESS_KEY_ID: whaloc
       AWS_SECRET_ACCESS_KEY: whaloc-secret
@@ -161,7 +166,8 @@ services:
 
   whaloc:
     image: ghcr.io/dgadelha/whaloc:latest
-    depends_on: [rustfs-bucket]
+    depends_on:
+      rustfs-bucket: { condition: service_completed_successfully }
     ports: ["8080:8080"]
     environment:
       WHALOC_MEDIA_BACKEND: s3
