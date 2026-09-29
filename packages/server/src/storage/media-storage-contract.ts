@@ -17,7 +17,7 @@ import {
  * answers, what a missing object throws, which keys are refused, and what a failed upload
  * leaves behind. `local-dir-storage.spec.ts` adds what is true of a directory only (the media
  * directory being created on demand, a key that must never reach a file outside it), and
- * `s3-storage.spec.ts` adds nothing — if the contract passes against MinIO, the backend works.
+ * `s3-storage.spec.ts` adds nothing — if the contract passes against RustFS, the backend works.
  *
  * This file is not a `*.spec.ts` on purpose: vitest collects the two specs that import it.
  */

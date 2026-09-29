@@ -6,17 +6,17 @@ import { S3MediaStorage } from "./s3-storage.ts";
 /**
  * The S3 backend against a real S3-compatible server (SPEC §6).
  *
- * **These specs need MinIO**, so they are opt-in: with `WHALOC_TEST_S3_ENDPOINT` unset they
+ * **These specs need RustFS**, so they are opt-in: with `WHALOC_TEST_S3_ENDPOINT` unset they
  * skip, which is what keeps `npm test` green on a machine without Docker. CI sets the variable
- * against its `minio` service container; locally, one command is enough:
+ * against its `rustfs` service container; locally, one command is enough:
  *
  * ```sh
- * docker run -d --name whaloc-minio -p 9000:9000 \
- *   -e MINIO_ROOT_USER=whaloc -e MINIO_ROOT_PASSWORD=whaloc-secret minio/minio:edge-cicd
+ * docker run -d --name whaloc-rustfs -p 9000:9000 \
+ *   -e RUSTFS_ACCESS_KEY=whaloc -e RUSTFS_SECRET_KEY=whaloc-secret rustfs/rustfs:1.0.0
  * WHALOC_TEST_S3_ENDPOINT=http://127.0.0.1:9000 npm test --workspace @whaloc/server
  * ```
  *
- * The bucket is created by `beforeAll` rather than by a `mc` step, so the only thing the
+ * The bucket is created by `beforeAll` rather than by a CLI step, so the only thing the
  * environment has to provide is a running server.
  */
 const endpoint = process.env["WHALOC_TEST_S3_ENDPOINT"];
@@ -30,7 +30,7 @@ const credentials = {
 if (endpoint === undefined) {
 	// One line, once: a backend that skips itself in silence is worse than a noisy one.
 	console.info(
-		"S3MediaStorage specs skipped — set WHALOC_TEST_S3_ENDPOINT (e.g. http://127.0.0.1:9000) to run them against MinIO",
+		"S3MediaStorage specs skipped — set WHALOC_TEST_S3_ENDPOINT (e.g. http://127.0.0.1:9000) to run them against RustFS",
 	);
 }
 

@@ -276,7 +276,7 @@ Shared contract, enforced by one vitest suite both implementations run (`storage
 - `get` honors an inclusive byte range (the consumer's `Range`, §1.7) and always reports the size of the **whole** object — read off `Content-Range` when the answer is a slice.
 - A missing object is `MediaObjectNotFoundError` from `get` and a no-op for `delete`.
 
-The S3 side of the contract suite runs against **MinIO**: in CI as a service container, locally when `WHALOC_TEST_S3_ENDPOINT` points at one. Unset, those specs skip with a message saying how to start it — a machine without Docker still gets a green `npm test`.
+The S3 side of the contract suite runs against **RustFS**: in CI as a service container, locally when `WHALOC_TEST_S3_ENDPOINT` points at one. Unset, those specs skip with a message saying how to start it — a machine without Docker still gets a green `npm test`.
 
 ## 7. Configuration (environment variables only)
 
@@ -301,8 +301,8 @@ Parsed once at boot with zod (fail fast, print every error). No config files.
 | `WHALOC_MEDIA_BACKEND` | `local` | `local` (a directory) or `s3` (an S3-compatible bucket), §6 |
 | `WHALOC_MEDIA_DIR` | `/data/media` (image) | Media storage root, for the `local` backend |
 | `WHALOC_S3_BUCKET` | *(required with `s3`)* | Bucket the media objects live in; whaloc never creates it |
-| `WHALOC_S3_REGION` | *(required with `s3`)* | Region; any value satisfies MinIO, but the SDK insists on one |
-| `WHALOC_S3_ENDPOINT` | *(unset → AWS S3)* | Endpoint of an S3-compatible server (MinIO, R2, Ceph) |
+| `WHALOC_S3_REGION` | *(required with `s3`)* | Region; any value satisfies RustFS, but the SDK insists on one |
+| `WHALOC_S3_ENDPOINT` | *(unset → AWS S3)* | Endpoint of an S3-compatible server (RustFS, R2, Ceph) |
 | `WHALOC_S3_ACCESS_KEY_ID` | *(unset → SDK default chain)* | Access key; all-or-nothing with the secret below |
 | `WHALOC_S3_SECRET_ACCESS_KEY` | *(unset → SDK default chain)* | Secret key |
 | `WHALOC_S3_FORCE_PATH_STYLE` | `true` when an endpoint is set | Path-style addressing (`<endpoint>/<bucket>/<key>`) |

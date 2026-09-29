@@ -29,18 +29,18 @@ import {
  * bytes are on disk or in a bucket; that is the whole point of the interface, and it is what
  * lets a snapshot exported from a local-backed whaloc be imported into an S3-backed one.
  *
- * Tested against **MinIO** (see `s3-storage.spec.ts`), which is also what CI runs — an
- * S3-compatible server is the realistic target here, and anything MinIO and AWS both honor is
+ * Tested against **RustFS** (see `s3-storage.spec.ts`), which is also what CI runs — an
+ * S3-compatible server is the realistic target here, and anything RustFS and AWS both honor is
  * the subset whaloc uses: `PutObject`, multipart upload, ranged `GetObject`, `DeleteObject`.
  */
 export interface S3MediaStorageOptions {
 	/** `WHALOC_S3_BUCKET`. It must already exist: whaloc never creates one. */
 	bucket: string;
-	/** `WHALOC_S3_REGION`; any value will do for MinIO, but the SDK insists on having one. */
+	/** `WHALOC_S3_REGION`; any value will do for RustFS, but the SDK insists on having one. */
 	region: string;
-	/** `WHALOC_S3_ENDPOINT` — set for MinIO, R2 or any other S3-compatible server. */
+	/** `WHALOC_S3_ENDPOINT` — set for RustFS, R2 or any other S3-compatible server. */
 	endpoint?: string | undefined;
-	/** Path-style addressing (`<endpoint>/<bucket>/<key>`), which is what MinIO serves. */
+	/** Path-style addressing (`<endpoint>/<bucket>/<key>`), which is what RustFS serves. */
 	forcePathStyle?: boolean;
 	/** Omitted, the SDK's default credential chain applies (profile, IMDS, env, …). */
 	credentials?: { accessKeyId: string; secretAccessKey: string } | undefined;
@@ -97,7 +97,7 @@ function httpStatusOf(error: object): unknown {
 		: undefined;
 }
 
-/** Whether S3 (or MinIO, or R2) is saying "no such object" rather than failing. */
+/** Whether S3 (or RustFS, or R2) is saying "no such object" rather than failing. */
 function isMissingObject(error: unknown): boolean {
 	if (typeof error !== "object" || error === null) {
 		return false;
@@ -131,7 +131,7 @@ function createClient(options: S3MediaStorageOptions): S3Client {
 	const config: S3ClientConfig = {
 		region: options.region,
 		forcePathStyle: options.forcePathStyle ?? false,
-		// S3-compatible servers (MinIO's older builds, R2, Ceph) reject the flexible checksum
+		// Several S3-compatible servers (R2, Ceph, older self-hosted builds) reject the flexible checksum
 		// trailers the SDK started adding by default; whaloc computes its own SHA-256 anyway.
 		requestChecksumCalculation: "WHEN_REQUIRED",
 		responseChecksumValidation: "WHEN_REQUIRED",
