@@ -6,6 +6,7 @@ import {
 	createNumericId,
 	createPhoneNumberId,
 	createTemplateId,
+	createUploadHandle,
 	createWabaId,
 	createWamid,
 	createWebhookChallenge,
@@ -126,6 +127,25 @@ describe("createMediaUrlToken", () => {
 
 		expect(createMediaUrlToken()).toMatch(/^[\w-]{32}$/);
 		expect(uniqueCount(tokens)).toBe(tokens.length);
+	});
+});
+
+describe("createUploadHandle", () => {
+	const tail = fixedBytes("00112233445566778899aabbccddeeff");
+
+	it("carries the file name and the MIME type in standard padded base64, as Meta's do", () => {
+		expect(createUploadHandle("image/jpeg", "office.jpg", tail)).toBe(
+			`4:b2ZmaWNlLmpwZw==:aW1hZ2UvanBlZw==:ARZ${Buffer.from("00112233445566778899aabbccddeeff", "hex").toString("base64url")}`,
+		);
+	});
+
+	it("leaves the file name segment empty for a session that named no file", () => {
+		expect(createUploadHandle("image/png", null, tail)).toMatch(/^4::aW1hZ2UvcG5n:ARZ/);
+	});
+
+	it("keeps base64's + and / rather than the URL-safe alphabet", () => {
+		expect(createUploadHandle("image/jpeg", "a??.jpg", tail)).toMatch(/^4:YT8\/LmpwZw==:/);
+		expect(createUploadHandle("image/jpeg", "??>?.jpg", tail)).toMatch(/^4:Pz8\+Py5qcGc=:/);
 	});
 });
 

@@ -41,9 +41,9 @@ describe("resumable uploads (SPEC §2.21, §2.22)", () => {
 		return fixture.app.request(`/v25.0/${id}/uploads?${query}`, { method: "POST", headers: TEST_AUTH_HEADERS });
 	}
 
-	async function sessionId(bytes: Uint8Array = IMAGE_BYTES, type = "image/jpeg"): Promise<string> {
+	async function sessionId(bytes: Uint8Array = IMAGE_BYTES, type = "image/jpeg", name = "photo.jpg"): Promise<string> {
 		const response = await openSession(
-			`file_length=${String(bytes.byteLength)}&file_type=${encodeURIComponent(type)}&file_name=photo.jpg`,
+			`file_length=${String(bytes.byteLength)}&file_type=${encodeURIComponent(type)}&file_name=${encodeURIComponent(name)}`,
 		);
 
 		const body = await readJson<SessionResponse>(response);
@@ -112,7 +112,8 @@ describe("resumable uploads (SPEC §2.21, §2.22)", () => {
 			const body = await readJson<HandleResponse>(response);
 
 			expect(response.status).toBe(200);
-			expect(body.h).toMatch(/^4::/);
+			// `photo.jpg` and `image/jpeg`, each in standard padded base64, as Meta encodes them.
+			expect(body.h).toMatch(/^4:cGhvdG8uanBn:aW1hZ2UvanBlZw==:ARZ/);
 		});
 
 		it("is routed as its own segment, never as a template edit", async () => {
@@ -142,7 +143,7 @@ describe("resumable uploads (SPEC §2.21, §2.22)", () => {
 
 			const finished = await readJson<HandleResponse>(await sendChunk(id, second, 1000));
 
-			expect(finished.h).toMatch(/^4::/);
+			expect(finished.h).toMatch(/^4:cGhvdG8uanBn:aW1hZ2UvanBlZw==:ARZ/);
 		});
 
 		it("refuses a chunk that does not land on the current offset", async () => {
@@ -275,6 +276,23 @@ describe("resumable uploads (SPEC §2.21, §2.22)", () => {
 			});
 			expect(await statusOf(fixture.app.request("/api/uploads?handle=4::nope"))).toBe(404);
 		});
+
+		it.each(["??>?.jpg", "a??.jpg"])(
+			"resolves a handle whose file name segment carries base64's + or / (%s)",
+			async name => {
+				const id = await sessionId(IMAGE_BYTES, "image/jpeg", name);
+				const { h: handle } = await readJson<HandleResponse>(await sendChunk(id, IMAGE_BYTES));
+
+				expect(handle).toMatch(/[+/]/);
+
+				const response = await fixture.app.request(`/api/uploads?handle=${encodeURIComponent(handle)}`);
+
+				expect(response.status).toBe(200);
+				expect(await readJson<{ data: { handle: string; fileName: string } }>(response)).toMatchObject({
+					data: { handle, fileName: name },
+				});
+			},
+		);
 
 		it("has no URL while the session is still being filled", async () => {
 			const id = await sessionId();

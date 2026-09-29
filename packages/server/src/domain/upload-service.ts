@@ -231,7 +231,7 @@ export class UploadService {
 			storageKey: stored.storageKey,
 			sha256: stored.sha256,
 			...(isComplete && {
-				handle: createUploadHandle(session.fileType, this.#random),
+				handle: createUploadHandle(session.fileType, session.fileName, this.#random),
 				urlToken: createMediaUrlToken(this.#random),
 			}),
 			updatedAt: this.#scheduler.now().toISOString(),

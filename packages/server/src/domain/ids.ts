@@ -152,13 +152,22 @@ export function createUploadSessionId(random: RandomBytes = defaultRandomBytes):
 /**
  * The **handle** a finished upload produces (SPEC §2.21).
  *
- * Meta's are long colon-separated strings that begin with a version digit and carry the encoded
- * MIME type — `4::aW1hZ2UvcG5n:ARZ…`. whaloc mints the same shape: consumers treat a handle as
- * opaque, and looking like the real thing means a captured Meta handle and a whaloc one are
- * indistinguishable to the code that passes them around.
+ * Meta's handles are colon-separated: a version digit, the session's `file_name` and its MIME
+ * type, each in standard padded base64, then an opaque tail —
+ * `4:b2ZmaWNlLmpwZw==:aW1hZ2UvanBlZw==:AR…` (captured). A session that named no file leaves
+ * that segment empty, as in Meta's own docs example (`4::aW…`). whaloc mints the same shape:
+ * consumers treat a handle as opaque, and looking like the real thing means a captured Meta
+ * handle and a whaloc one are indistinguishable to the code that passes them around.
  */
-export function createUploadHandle(fileType: string, random: RandomBytes = defaultRandomBytes): string {
-	return `4::${Buffer.from(fileType, "utf8").toString("base64url")}:ARZ${toBase64Url(random(UPLOAD_HANDLE_BYTES))}`;
+export function createUploadHandle(
+	fileType: string,
+	fileName: string | null,
+	random: RandomBytes = defaultRandomBytes,
+): string {
+	const name = fileName === null ? "" : Buffer.from(fileName, "utf8").toString("base64");
+	const type = Buffer.from(fileType, "utf8").toString("base64");
+
+	return `4:${name}:${type}:ARZ${toBase64Url(random(UPLOAD_HANDLE_BYTES))}`;
 }
 
 /**
