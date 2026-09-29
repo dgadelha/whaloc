@@ -86,6 +86,17 @@ jobs:
       # A single-platform build the runner can actually run, so nothing is published before
       # the image has answered a request. Its layers are what the multi-platform build below
       # reuses for linux/amd64.
+      # What the image reports as its version (SPEC §5): the release tag without its `v`, or a
+      # dev version naming the commit for any other build.
+      - name: Derive the version 🔢
+        id: version
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=0.0.0-dev+${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build for the smoke test 🏗️
         uses: docker/build-push-action@v7
         with:
@@ -93,6 +104,7 @@ jobs:
           platforms: linux/amd64
           load: true
           tags: whaloc:ci
+          build-args: WHALOC_VERSION=${{ steps.version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -111,7 +123,11 @@ jobs:
           test "$(docker exec whaloc-ci whoami)" = "node"
           curl --fail --silent --show-error http://localhost:8080/health
           curl --fail --silent --show-error http://localhost:8080/ | grep -q "<div id=\"root\">"
+          reported="$(curl --fail --silent --show-error http://localhost:8080/api/export | jq -r .whalocVersion)"
+          test "$reported" = "$WHALOC_VERSION" || { echo "image reports $reported, expected $WHALOC_VERSION"; exit 1; }
           docker rm --force whaloc-ci
+        env:
+          WHALOC_VERSION: ${{ steps.version.outputs.version }}
 
       - name: Login to GitHub Container Registry 🔑
         if: github.event_name != 'pull_request'
@@ -136,6 +152,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
+          build-args: WHALOC_VERSION=${{ steps.version.outputs.version }}
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
           cache-from: type=gha

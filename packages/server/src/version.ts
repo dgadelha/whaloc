@@ -1,11 +1,17 @@
 /**
  * The version whaloc stamps on a state snapshot (SPEC §5).
  *
- * A constant rather than a read of `package.json`: the emitted `dist/` sits at a different
- * depth than the sources, the file is not part of the build output's public surface, and
- * whaloc's rule that nothing outside `storage/` touches the filesystem is worth more than an
- * automatically synced string. Keep it in step with the workspace version when one is cut —
- * nothing depends on it being right, since an import is gated on the snapshot's *schema*
- * version, not on this.
+ * The release tag is the only source of truth: the Docker build passes it in as the
+ * `WHALOC_VERSION` build argument, which the image carries as an environment variable. Nothing in
+ * the repository is bumped for a release, so there is nothing to forget — the workspace
+ * `package.json` versions stay `0.0.0`, which is fine for packages that are never published. A
+ * run from source is `0.0.0-dev`. Nothing depends on it being right: an import is gated on the
+ * snapshot's *schema* version, not on this.
  */
-export const WHALOC_VERSION = "0.0.0";
+export function whalocVersion(env: Readonly<Record<string, string | undefined>>): string {
+	const version = env["WHALOC_VERSION"]?.trim();
+
+	return version === undefined || version === "" ? "0.0.0-dev" : version;
+}
+
+export const WHALOC_VERSION = whalocVersion(process.env);

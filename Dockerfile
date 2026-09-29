@@ -95,6 +95,10 @@ VOLUME /data
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 	CMD wget -q --spider -T 3 "http://127.0.0.1:${WHALOC_PORT:-8080}/health" || exit 1
 
+# The release tag, handed in by the publish workflow; last, so a new version rebuilds no layer.
+ARG WHALOC_VERSION=0.0.0-dev
+ENV WHALOC_VERSION=${WHALOC_VERSION}
+
 # `node:sqlite` is still flagged experimental in Node 24 and warns on first use; the emulator
 # does not need the reminder on every boot.
 CMD ["node", "--disable-warning=ExperimentalWarning", "packages/server/dist/main.js"]
