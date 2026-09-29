@@ -433,10 +433,16 @@ describe("POST /:phoneNumberId/messages (SPEC §2.5)", () => {
 				components: [{ type: "body", parameters: [{ type: "text", parameter_name: "client", text: "Ana" }] }],
 			});
 
-			expect(await response.json()).toMatchObject({
+			expect(await response.json()).toEqual({
 				error: {
-					code: 132_000,
-					error_data: { details: "body: parameter_name (client) does not exist in the template" },
+					message: "(#100) Invalid parameter",
+					code: 100,
+					type: "OAuthException",
+					error_data: {
+						messaging_product: "whatsapp",
+						details: "Parameter name is missing for the parameter '{{customer_name}}'",
+					},
+					fbtrace_id: anyString(),
 				},
 			});
 		});
@@ -455,6 +461,94 @@ describe("POST /:phoneNumberId/messages (SPEC §2.5)", () => {
 			});
 
 			expect(response.status).toBe(200);
+		});
+
+		describe("the captured header and button envelopes", () => {
+			const booking = {
+				name: "booking_update",
+				components: [
+					{ type: "BODY", text: "Booking {{1}}" },
+					{ type: "BUTTONS", buttons: [{ type: "URL", text: "View", url: "https://shop.test/b/{{1}}" }] },
+				],
+			};
+			const bookingBody = { type: "body", parameters: [{ type: "text", text: "A-1" }] };
+
+			async function envelopeOf(response: Response): Promise<unknown> {
+				expect(response.status).toBe(400);
+
+				return response.json();
+			}
+
+			it("answers a media header sent without its media with 132012", async () => {
+				await createApprovedTemplate({
+					name: "meet_here",
+					components: [
+						{ type: "HEADER", format: "LOCATION" },
+						{ type: "BODY", text: "Meet us here" },
+					],
+				});
+
+				const response = await sendTemplate({ name: "meet_here", language: { code: "en_US" } });
+
+				expect(await envelopeOf(response)).toEqual({
+					error: {
+						message: "(#132012) Parameter format does not match format in the created template",
+						code: 132_012,
+						type: "OAuthException",
+						error_data: {
+							messaging_product: "whatsapp",
+							details: "header: Format mismatch, expected LOCATION, received UNKNOWN",
+						},
+						fbtrace_id: anyString(),
+					},
+				});
+			});
+
+			it("answers a dynamic URL button sent without its parameter with 131008", async () => {
+				await createApprovedTemplate(booking);
+
+				const response = await sendTemplate({
+					name: "booking_update",
+					language: { code: "en_US" },
+					components: [bookingBody],
+				});
+
+				expect(await envelopeOf(response)).toEqual({
+					error: {
+						message: "(#131008) Required parameter is missing",
+						code: 131_008,
+						type: "OAuthException",
+						error_data: {
+							messaging_product: "whatsapp",
+							details: "buttons: Button at index 0 of type Url requires a parameter",
+						},
+						fbtrace_id: anyString(),
+					},
+				});
+			});
+
+			it("answers a button component of the wrong sub_type with 132018", async () => {
+				await createApprovedTemplate(booking);
+
+				const response = await sendTemplate({
+					name: "booking_update",
+					language: { code: "en_US" },
+					components: [
+						bookingBody,
+						{ type: "button", sub_type: "quick_reply", index: "0", parameters: [{ type: "payload", payload: "X" }] },
+					],
+				});
+
+				expect(await envelopeOf(response)).toEqual({
+					error: {
+						message: "(#132018) There\u{2019}s an issue with the parameters in your template",
+						code: 132_018,
+						type: "OAuthException",
+						error_data: { messaging_product: "whatsapp", details: "buttons: Button at index 0 must be of type Url" },
+						fbtrace_id: anyString(),
+					},
+				});
+			});
 		});
 
 		it("does not store a message a template check rejected", async () => {

@@ -192,6 +192,67 @@ export function templateParameterMismatchError(details: string): GraphApiError {
 	});
 }
 
+/**
+ * A template parameter missing the value its `type` requires. Captured from Meta (SPEC §1):
+ * unlike {@link invalidParameterError} it carries no `error_subcode`.
+ */
+export function mandatoryParameterError(details: string): GraphApiError {
+	return new GraphApiError("(#100) Invalid parameter", { code: 100, details });
+}
+
+/** A parameter whose `type` names an object it does not carry — `{type: "image"}` with no `image`. */
+export function missingParameterObjectError(type: string): GraphApiError {
+	return mandatoryParameterError(`Parameter '${type}' is mandatory for component parameter type '${type}'`);
+}
+
+/**
+ * Meta's request-schema check, for an object missing required fields: one sentence per field,
+ * joined by `, `, naming the field by its path in the request — and no `error_data` at all
+ * (captured, SPEC §1).
+ */
+export function jsonSchemaRequiredError(path: string, missing: readonly string[]): GraphApiError {
+	const sentences = missing.map(
+		field =>
+			`Your request has violated JSON schema constraint 'required' for the JSON field '${path}', please check the JSON schema for the JSON field '${path}' and make sure your request is valid for missing : '${field}'`,
+	);
+
+	return new GraphApiError(sentences.join(", "), { code: 100 });
+}
+
+/**
+ * A template parameter Meta can place but not accept: a media object naming neither an uploaded
+ * media ID nor a link, a button component of the wrong `sub_type`. Message (with Meta's
+ * typographic apostrophe) captured from Meta, as is each caller's `details` (SPEC §1).
+ */
+export function templateParameterIssueError(details: string): GraphApiError {
+	return new GraphApiError("(#132018) There\u{2019}s an issue with the parameters in your template", {
+		code: 132_018,
+		details,
+	});
+}
+
+/**
+ * A template button that takes a parameter — a URL with a `{{1}}` suffix — sent without one.
+ * Message and `details` shape captured from Meta (SPEC §1).
+ */
+export function requiredParameterMissingError(details: string): GraphApiError {
+	return new GraphApiError("(#131008) Required parameter is missing", {
+		code: 131_008,
+		details,
+	});
+}
+
+/**
+ * A media header sent without the media it was created for. Message and `details` shape are the
+ * captured sample in SPEC §1 ("Real captured samples").
+ */
+export function templateHeaderFormatMismatchError(details: string): GraphApiError {
+	return new GraphApiError("(#132012) Parameter format does not match format in the created template", {
+		code: 132_012,
+		details,
+	});
+}
+
 /** Creating a template whose name and language are already taken (SPEC §2.7). */
 export function templateAlreadyExistsError(name: string, language: string): GraphApiError {
 	return new GraphApiError(`(#100) Template name (${name}) and language (${language}) already exists`, {

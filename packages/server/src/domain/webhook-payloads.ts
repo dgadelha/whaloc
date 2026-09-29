@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { QualityRating } from "../config/index.ts";
 import type { ContactRecord, JsonObject, MessageRecord, PhoneNumberRecord, TemplateRecord } from "../db/index.ts";
 import { phoneNumberDigits } from "./phone-number-format.ts";
+import { objectAt } from "./json-object.ts";
 
 /**
  * Every webhook body whaloc can send, built to match the captured Meta samples in
@@ -109,13 +110,6 @@ export interface InboundMessageValueOptions {
 	phoneNumber: PhoneNumberRecord;
 	contact: ContactRecord;
 	message: MessageRecord;
-}
-
-/** A stored payload key holding a JSON object, or `undefined` when it is absent or not one. */
-function objectAt(payload: JsonObject, key: string): JsonObject | undefined {
-	const value = payload[key];
-
-	return typeof value === "object" && value !== null && !Array.isArray(value) ? (value as JsonObject) : undefined;
 }
 
 /**
