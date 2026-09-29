@@ -2,7 +2,7 @@ import type { JsonObject, Message } from "@whaloc/shared";
 import { JsonBlock } from "../../components/json-block.tsx";
 import { asArray, asNumber, asRecord, asString, readString } from "../../lib/json.ts";
 import { LocationCard } from "./location-card.tsx";
-import { MediaPreview } from "./media-preview.tsx";
+import { LinkedMedia, MediaPreview } from "./media-preview.tsx";
 import { TemplateMessage } from "./template-message.tsx";
 
 /**
@@ -29,9 +29,7 @@ function MediaNode(props: { message: Message; node: JsonObject }) {
 				link === null ? (
 					<span className="faint">no media reference</span>
 				) : (
-					<a className="media__document" href={link} target="_blank" rel="noreferrer">
-						{filename ?? link}
-					</a>
+					<LinkedMedia type={message.type} link={link} filename={filename} />
 				)
 			) : (
 				<MediaPreview

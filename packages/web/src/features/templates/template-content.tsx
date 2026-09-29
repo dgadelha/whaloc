@@ -2,7 +2,7 @@ import type { JsonObject, UploadDescriptor } from "@whaloc/shared";
 import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { api } from "../../api/endpoints.ts";
 import { LocationCard } from "../chats/location-card.tsx";
-import { MediaPreview, mediaSrc } from "../chats/media-preview.tsx";
+import { LinkedMedia, MediaPreview, mediaSrc } from "../chats/media-preview.tsx";
 import { asArray, asRecord, asString } from "../../lib/json.ts";
 import {
 	resolvePlaceholder,
@@ -127,23 +127,11 @@ function SentHeaderMedia(props: { sent: HeaderMediaParameter | null; format: str
 		return <MediaPreview mediaId={sent.id} filename={sent.filename} />;
 	}
 
-	if (sent?.link == undefined) {
+	if (sent?.link == null) {
 		return <div className="preview__media">no {format.toLowerCase()} sent</div>;
 	}
 
-	if (sent.format === "image") {
-		return <img className="media__image" src={sent.link} alt="image header" loading="lazy" />;
-	}
-
-	if (sent.format === "video") {
-		return <video className="media__video" src={sent.link} controls preload="metadata" />;
-	}
-
-	return (
-		<a className="media__document" href={sent.link} target="_blank" rel="noreferrer">
-			{sent.filename ?? sent.link}
-		</a>
-	);
+	return <LinkedMedia type={sent.format} link={sent.link} filename={sent.filename} />;
 }
 
 function Header(props: { component: JsonObject; fill: TemplateFill | undefined }) {
@@ -289,14 +277,7 @@ function SentButtons(props: { buttons: unknown[]; fill: TemplateFill }) {
 							parameter => asString(parameter["coupon_code"]) ?? asString(parameter["text"]),
 						)[0];
 
-						return (
-							<ButtonRow
-								key={key}
-								icon="⧉"
-								label={text ?? "Copy code"}
-								{...(code !== undefined && code !== null && { detail: code })}
-							/>
-						);
+						return <ButtonRow key={key} icon="⧉" label={text ?? "Copy code"} {...(code != null && { detail: code })} />;
 					}
 
 					default: {
