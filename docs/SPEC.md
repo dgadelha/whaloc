@@ -59,6 +59,66 @@ Template param mismatch (HTTP 400):
 {"error":{"message":"(#132000) Number of parameters does not match the expected number of params","code":132000,"type":"OAuthException","error_data":{"messaging_product":"whatsapp","details":"body: number of localizable_params (1) does not match the expected number of params (3)"},"fbtrace_id":"AOnodi98JaYHcSTvVvrOtJs"}}
 ```
 
+Media header sent without its media (HTTP 400) — an `IMAGE`-header template sent with only its body parameters; `fbtrace_id` re-minted:
+
+```json
+{"error":{"message":"(#132012) Parameter format does not match format in the created template","code":132012,"type":"OAuthException","error_data":{"messaging_product":"whatsapp","details":"header: Format mismatch, expected IMAGE, received UNKNOWN"},"fbtrace_id":"AQj9NsyVOz1rboSgaFw5lDA"}}
+```
+
+Media parameter that names its type without the object (HTTP 400) — `{"type":"image"}` alone as an `IMAGE` header's parameter; no `error_subcode`, `fbtrace_id` re-minted:
+
+```json
+{"error":{"message":"(#100) Invalid parameter","code":100,"type":"OAuthException","error_data":{"messaging_product":"whatsapp","details":"Parameter 'image' is mandatory for component parameter type 'image'"},"fbtrace_id":"AR7qZ0nL3xkW9cVtQm2pD1f"}}
+```
+
+Media object with neither `id` nor `link` (HTTP 400) — `{"type":"image","image":{}}`; the message's apostrophe is Meta's typographic one, `fbtrace_id` re-minted:
+
+```json
+{"error":{"message":"(#132018) There’s an issue with the parameters in your template","code":132018,"type":"OAuthException","error_data":{"messaging_product":"whatsapp","details":"Either one of media ID or link must be present"},"fbtrace_id":"AXk2mPq8rT4vLw9nB3cZs0e"}}
+```
+
+Dynamic URL button sent without its parameter (HTTP 400) — no `button` component for a `https://…/{{1}}` button at index 0; `fbtrace_id` re-minted:
+
+```json
+{"error":{"message":"(#131008) Required parameter is missing","code":131008,"type":"OAuthException","error_data":{"messaging_product":"whatsapp","details":"buttons: Button at index 0 of type Url requires a parameter"},"fbtrace_id":"AJ5tWc7yNq2kHs8fRd1mV6x"}}
+```
+
+Button component of the wrong `sub_type` at a URL button's index (HTTP 400) — `{"type":"button","sub_type":"quick_reply","index":"0",…}`; `fbtrace_id` re-minted:
+
+```json
+{"error":{"message":"(#132018) There’s an issue with the parameters in your template","code":132018,"type":"OAuthException","error_data":{"messaging_product":"whatsapp","details":"buttons: Button at index 0 must be of type Url"},"fbtrace_id":"AL8rQx3vHk6nZp1cTf9wJ2s"}}
+```
+
+Parameter object missing required fields (HTTP 400) — `{"type":"location","location":{}}` on a `LOCATION` header; Meta's request-schema check, one sentence per missing field and **no `error_data`**, `fbtrace_id` re-minted. `currency: {}` (missing `fallback_value`, `code`, `amount_1000`) and `date_time: {}` (missing `fallback_value`) answer the same way:
+
+```json
+{"error":{"message":"Your request has violated JSON schema constraint 'required' for the JSON field 'template.components.0.parameters.0.location', please check the JSON schema for the JSON field 'template.components.0.parameters.0.location' and make sure your request is valid for missing : 'longitude', Your request has violated JSON schema constraint 'required' for the JSON field 'template.components.0.parameters.0.location', please check the JSON schema for the JSON field 'template.components.0.parameters.0.location' and make sure your request is valid for missing : 'latitude'","code":100,"type":"OAuthException","fbtrace_id":"AP4hLw6mXq9sNd2vRb7tKc1"}}
+```
+
+URL button suffix with no text (HTTP 400) — `{"type":"text"}` as a dynamic URL button's parameter; `fbtrace_id` re-minted:
+
+```json
+{"error":{"message":"(#100) Invalid parameter","code":100,"type":"OAuthException","error_data":{"messaging_product":"whatsapp","details":"button: Parameter 'text' is mandatory for component parameter type 'text' and cannot be empty"},"fbtrace_id":"AQ2mVy8cRn5tLp3xHw6kBd9"}}
+```
+
+Body text parameter with no text (HTTP 400) — `{"type":"text"}` in the body; unlike the button's, the `details` names no component; `fbtrace_id` re-minted:
+
+```json
+{"error":{"message":"(#100) Invalid parameter","code":100,"type":"OAuthException","error_data":{"messaging_product":"whatsapp","details":"Parameter 'text' is mandatory for component parameter type 'text'"},"fbtrace_id":"AK3nRt7wYq1mPs9vLc4hXd2"}}
+```
+
+NAMED template, parameters without `parameter_name` (HTTP 400) — the right count, no names; `fbtrace_id` re-minted:
+
+```json
+{"error":{"message":"(#100) Invalid parameter","code":100,"type":"OAuthException","error_data":{"messaging_product":"whatsapp","details":"Parameter name is missing or empty"},"fbtrace_id":"AT6pWk2zNr8dLx5mQv1cHb4"}}
+```
+
+NAMED template, a declared placeholder no parameter names (HTTP 400) — the right count, but `customer_name` twice (or `customer_name` plus an undeclared `client`) for `{{customer_name}}` and `{{order_id}}`; `fbtrace_id` re-minted:
+
+```json
+{"error":{"message":"(#100) Invalid parameter","code":100,"type":"OAuthException","error_data":{"messaging_product":"whatsapp","details":"Parameter name is missing for the parameter '{{order_id}}'"},"fbtrace_id":"AW9cMt4xLp7nRq2sVh6kZd3"}}
+```
+
 ### Canonical webhook payload fixtures
 
 `docs/fixtures/webhooks/*.json` holds verbatim v25.0 webhook payloads captured from Meta's webhook references: inbound text, inbound image, status `sent` (with `conversation` + `pricing`), status `failed` (error 131049 with `href`), `message_template_status_update` APPROVED and REJECTED (with `rejection_info`), `message_template_quality_update`, `phone_number_quality_update`. whaloc's webhook builders must produce payloads structurally identical to these.
@@ -114,7 +174,14 @@ All routes live under `/:version{v\d+\.\d+}`. IDs are looked up across entity st
 | 21 | **Resumable Upload API**: `POST /:appId/uploads`, `POST /upload:<opaque>`, `GET /upload:<opaque>` | Where a real `header_handle` comes from. `POST /{appId}/uploads?file_length=&file_type=&file_name=` opens a session → `{"id":"upload:<opaque>"}` (the parameters are read from the query string *or* the body, because Meta documents one and its SDKs send the other). `POST /upload:<opaque>` with `file_offset: 0` (header, or query) and the raw bytes as the body stores them and answers `{"h":"<handle>"}`. `GET /upload:<opaque>` answers `{"id":"upload:<opaque>","file_offset":<received bytes>}` — **truthful**, so a client that lost its connection knows where to resume; a chunk that does not land exactly on the current offset is `(#100)` rather than a silent overwrite, and more bytes than `file_length` promised is refused. `:appId` accepts whaloc's own app ID (§2.20) **or any digit-only ID** — an app under test is configured with a `META_APP_ID` that has no reason to equal `WHALOC_APP_ID`, and whaloc has one app either way; anything that is not an ID at all is `(#100)`. Handles are opaque, Meta-shaped (`4::<base64 mime>:ARZ…`), and usable wherever Meta uses one: `profile_picture_handle` (§2.19) and a template's `components[].example.header_handle[]` (§2.7). Sessions and their handles live in `upload_sessions`, so a handle survives a restart with a file database; the path segment carries a literal colon, which the router matches as one segment ahead of the template edit's `POST /{id}`. **Simplification**: a chunk that is not the whole file is stored by reading what is there, concatenating and putting it back under the same key — O(n²) in chunks, fine at these sizes, and it means a partial upload survives a restart too |
 | 22 | `GET /whaloc-upload/:token` (no version prefix) | The bytes behind a completed handle, with the same `Range` / no-redirect rules as §2.12. Its own token space, because a handle is not a media ID and is not scoped to a phone number. Unknown or still-incomplete → plain 404. **Divergence**: the `media.download` injection target (§4) names `/whaloc-media/{token}` only; this route is reachable through `graph.all` |
 
-Template **send** validation: when a `template` message references a known template, validate the parameters against its components — `parameter_format:"NAMED"` templates take `parameters:[{type:"text", parameter_name, text}]`; positional take `{{1}}`-style. Mismatch → the real 132000 error (see sample). Sends of templates whose status ≠ APPROVED → error 132001 (template not found/not approved). Unknown template name: same 132001.
+Template **send** validation: when a `template` message references a known template, validate the parameters against its components — `parameter_format:"NAMED"` templates take `parameters:[{type:"text", parameter_name, text}]`; positional take `{{1}}`-style. A placeholder is filled by any **localizable** parameter — `text`, `currency` or `date_time`, which is what Meta's `details` counts as `localizable_params` — while a media header's parameter counts toward nothing. Every answer below is captured from Meta (samples in §1) unless it says otherwise, and the checks run **in this order**, so a send breaking several rules gets the first one's error:
+
+1. **Existence.** A template whose status ≠ APPROVED, or an unknown name or language → 132001 (template not found/not approved).
+2. **Parameter objects and body text**, over every component. A `currency`, `date_time` or `location` parameter without its object is the `(#100)` `Parameter 'currency' is mandatory for component parameter type 'currency'`; an object missing required fields (`fallback_value`, `code`, `amount_1000` for currency; `fallback_value` for date_time; `longitude`, `latitude` for location, whose `name`/`address` are optional) is the request-schema error, naming the object by its position in the send and carrying no `error_data`. A body `text` parameter without `text` is the `(#100)` `Parameter 'text' is mandatory for component parameter type 'text'` — ahead of the counts: one such parameter against a two-placeholder body gets it, not the 132000.
+3. **Media header** (`IMAGE`, `VIDEO`, `DOCUMENT`, `LOCATION`). A parameter whose `type` names media it does not carry (`{type:"image"}` with no `image`) is the `(#100)` `Parameter 'image' is mandatory…` — ahead of the format: `{type:"video"}` alone on an `IMAGE` header gets it, not a 132012. An `image`/`video`/`document` object naming neither `id` nor `link` is 132018 `Either one of media ID or link must be present` (its place relative to the format check is inferred). Then the header parameter's type must match: none is 132012 `received UNKNOWN`, the wrong one names it (`received VIDEO`, `received TEXT`).
+4. **Counts**, per component, header then body, positional and NAMED alike → the 132000 of §1.
+5. **Names** (NAMED only, counts equal), each a `(#100)` naming no component: a parameter without a `parameter_name` (or with an empty one) is `Parameter name is missing or empty`; otherwise the first declared placeholder no parameter names is `Parameter name is missing for the parameter '{{order_id}}'`. A name the template does not declare is never reported itself — with the counts equal, it always leaves a declared one unnamed.
+6. **URL buttons** whose `url` carries a placeholder take their suffix from a `button` component with `sub_type:"url"` and that button's `index` (a string or a number). A component at that index naming another `sub_type` is 132018 `buttons: Button at index 0 must be of type Url`; one that names no `sub_type` is accepted, since only the mismatch was captured. No component, or one with no parameters, is 131008 `buttons: Button at index 0 of type Url requires a parameter`. A suffix of `type:"text"` without `text` is the `(#100)` `button: Parameter 'text' is mandatory for component parameter type 'text' and cannot be empty`; an empty string is treated the same, as that message says (inferred).
 
 Message sends where the recipient equals nothing known: auto-create the contact (default profile name = the MSISDN) so the conversation shows up in the UI. **Except a BSUID** (§1.15): an unresolvable `recipient` is 400 / 100 / 33, since there is no number to create a contact under.
 
