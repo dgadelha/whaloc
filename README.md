@@ -134,43 +134,45 @@ keeps the host's ownership, so `chown 1000:1000` the host directory (or accept r
 ### Media storage: a directory, or S3
 
 By default the bytes behind every uploaded image, video and document go to `WHALOC_MEDIA_DIR`.
-Set `WHALOC_MEDIA_BACKEND=s3` and they go to an **S3-compatible bucket** instead — MinIO, R2,
+Set `WHALOC_MEDIA_BACKEND=s3` and they go to an **S3-compatible bucket** instead — RustFS, R2,
 Ceph or AWS itself — which is what you want when whaloc runs more than once against the same
 state, or when a container that may be recreated must not take the media with it.
 
 ```yaml
 services:
-  minio:
-    image: minio/minio
-    command: server /data --console-address :9001
+  # The console is at http://localhost:9001/rustfs/console/.
+  rustfs:
+    image: rustfs/rustfs:1.0.0
     environment:
-      MINIO_ROOT_USER: whaloc
-      MINIO_ROOT_PASSWORD: whaloc-secret
+      RUSTFS_ACCESS_KEY: whaloc
+      RUSTFS_SECRET_KEY: whaloc-secret
     ports: ["9000:9000", "9001:9001"]
-    volumes: ["minio-data:/data"]
+    volumes: ["rustfs-data:/data"]
 
-  # whaloc never creates the bucket; this makes it once and exits.
-  minio-bucket:
-    image: minio/mc
-    depends_on: [minio]
-    entrypoint: >-
-      sh -c "mc alias set local http://minio:9000 whaloc whaloc-secret &&
-             mc mb --ignore-existing local/whaloc-media"
+  # whaloc never creates the bucket; this makes it once and exits (a rerun is harmless).
+  rustfs-bucket:
+    image: amazon/aws-cli
+    depends_on: [rustfs]
+    environment:
+      AWS_ACCESS_KEY_ID: whaloc
+      AWS_SECRET_ACCESS_KEY: whaloc-secret
+      AWS_DEFAULT_REGION: us-east-1
+    command: --endpoint-url http://rustfs:9000 s3 mb s3://whaloc-media
 
   whaloc:
     image: ghcr.io/dgadelha/whaloc:latest
-    depends_on: [minio-bucket]
+    depends_on: [rustfs-bucket]
     ports: ["8080:8080"]
     environment:
       WHALOC_MEDIA_BACKEND: s3
-      WHALOC_S3_ENDPOINT: http://minio:9000
+      WHALOC_S3_ENDPOINT: http://rustfs:9000
       WHALOC_S3_BUCKET: whaloc-media
       WHALOC_S3_REGION: us-east-1
       WHALOC_S3_ACCESS_KEY_ID: whaloc
       WHALOC_S3_SECRET_ACCESS_KEY: whaloc-secret
 
 volumes:
-  minio-data:
+  rustfs-data:
 ```
 
 Notes worth knowing:
@@ -180,7 +182,7 @@ Notes worth knowing:
   profile, an instance role, `AWS_*` variables) — setting only one of them is an error, not a
   request for the chain.
 - `WHALOC_S3_FORCE_PATH_STYLE` defaults to `true` as soon as an endpoint is configured, because
-  that is how MinIO and friends address a bucket; AWS itself gets virtual-host style.
+  that is how RustFS and friends address a bucket; AWS itself gets virtual-host style.
 - Object keys are the same flat, opaque names the local backend uses as filenames, so the two
   backends are interchangeable — including through an **export/import** (see below).
 - Everything else is unchanged: the two-hop download, `Range` requests, the ~100 MiB cap and
@@ -243,11 +245,11 @@ webhooks rather than failing), and values are trimmed.
 | `WHALOC_MEDIA_BACKEND`         | `local`                                              | `local` (a directory) or `s3` (an S3-compatible bucket, see **Media storage**)                      |
 | `WHALOC_MEDIA_DIR`             | `/data/media` in the image, `./data/media` otherwise | Media storage root, for the `local` backend                                                         |
 | `WHALOC_S3_BUCKET`             | _required when the backend is `s3`_                  | Bucket the media objects live in — whaloc never creates it                                          |
-| `WHALOC_S3_REGION`             | _required when the backend is `s3`_                  | Region; anything satisfies MinIO, but the SDK insists on having one                                 |
-| `WHALOC_S3_ENDPOINT`           | _unset → AWS S3_                                     | Endpoint of an S3-compatible server (MinIO, R2, Ceph…)                                              |
+| `WHALOC_S3_REGION`             | _required when the backend is `s3`_                  | Region; anything satisfies RustFS, but the SDK insists on having one                                |
+| `WHALOC_S3_ENDPOINT`           | _unset → AWS S3_                                     | Endpoint of an S3-compatible server (RustFS, R2, Ceph…)                                             |
 | `WHALOC_S3_ACCESS_KEY_ID`      | _unset → the SDK's default credential chain_         | Access key; all-or-nothing with the secret below                                                    |
 | `WHALOC_S3_SECRET_ACCESS_KEY`  | _unset → the SDK's default credential chain_         | Secret key                                                                                          |
-| `WHALOC_S3_FORCE_PATH_STYLE`   | `true` whenever an endpoint is set                   | Path-style addressing (`<endpoint>/<bucket>/<key>`), which is what MinIO serves                     |
+| `WHALOC_S3_FORCE_PATH_STYLE`   | `true` whenever an endpoint is set                   | Path-style addressing (`<endpoint>/<bucket>/<key>`), which is what RustFS serves                    |
 | `WHALOC_WEB_DIR`               | `packages/web/dist`, beside the server               | Built UI served at `/`; an absent directory just leaves `/` unrouted                                |
 | `WHALOC_LOG_LEVEL`             | `info`                                               | pino level (`fatal`…`trace`, `silent`)                                                              |
 
@@ -651,18 +653,18 @@ scripts in manifest order and not topologically.
 
 The S3 media backend is tested against a **real** S3-compatible server, so those specs are
 opt-in: with `WHALOC_TEST_S3_ENDPOINT` unset they skip themselves (with a line saying so) and
-`npm test` is green on a machine without Docker. CI runs them against a `minio` service
+`npm test` is green on a machine without Docker. CI runs them against a `rustfs` service
 container; locally it takes one command:
 
 ```sh
-docker run -d --name whaloc-minio -p 9000:9000 \
-  -e MINIO_ROOT_USER=whaloc -e MINIO_ROOT_PASSWORD=whaloc-secret minio/minio:edge-cicd
+docker run -d --name whaloc-rustfs -p 9000:9000 \
+  -e RUSTFS_ACCESS_KEY=whaloc -e RUSTFS_SECRET_KEY=whaloc-secret rustfs/rustfs:1.0.0
 WHALOC_TEST_S3_ENDPOINT=http://127.0.0.1:9000 npm test --workspace @whaloc/server
 ```
 
-The bucket (`whaloc-test`) is created by the spec itself. `minio/minio:edge-cicd` is the tag
-MinIO publishes for CI — its `CMD` already starts the server, which is what a GitHub Actions
-service container needs, since those cannot pass a command.
+The bucket (`whaloc-test`) is created by the spec itself. RustFS's image serves `/data` from its
+default `CMD`, which is what a GitHub Actions service container needs, since those cannot pass a
+command.
 
 | Package           | What it is                                                              |
 | ----------------- | ----------------------------------------------------------------------- |

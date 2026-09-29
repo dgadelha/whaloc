@@ -17,20 +17,20 @@ jobs:
     name: Lint, typecheck, test, build
     runs-on: ubuntu-latest
 
-    # The S3 media backend (SPEC §6) is tested against a real S3-compatible server. The
-    # `edge-cicd` tag is the one MinIO publishes for exactly this: its CMD already starts the
-    # server, which a service container cannot pass arguments to. Without the variables below
+    # The S3 media backend (SPEC §6) is tested against a real S3-compatible server. RustFS's
+    # image serves `/data` from its default CMD, which matters because a service container
+    # cannot pass arguments. Without the variables below
     # those specs skip themselves, which is what keeps `npm test` green off CI.
     services:
-      minio:
-        image: minio/minio:edge-cicd
+      rustfs:
+        image: rustfs/rustfs:1.0.0
         env:
-          MINIO_ROOT_USER: whaloc
-          MINIO_ROOT_PASSWORD: whaloc-secret
+          RUSTFS_ACCESS_KEY: whaloc
+          RUSTFS_SECRET_KEY: whaloc-secret
         ports:
           - 9000:9000
         options: >-
-          --health-cmd "curl -sf http://localhost:9000/minio/health/live"
+          --health-cmd "curl -sf http://localhost:9000/health"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 20

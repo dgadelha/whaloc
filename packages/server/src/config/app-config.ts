@@ -117,7 +117,7 @@ const mediaTtlSchema = integerString("must be a whole number of seconds").pipe(z
 export interface S3Config {
 	bucket: string;
 	region: string;
-	/** Set for MinIO, R2 or any other S3-compatible server; unset means AWS itself. */
+	/** Set for RustFS, R2 or any other S3-compatible server; unset means AWS itself. */
 	endpoint: string | undefined;
 	/** Path-style addressing; defaults to `true` whenever an endpoint is configured. */
 	forcePathStyle: boolean;
@@ -181,7 +181,7 @@ function s3ConfigOf(env: S3Env): S3Config | undefined {
 		bucket: env.WHALOC_S3_BUCKET!,
 		region: env.WHALOC_S3_REGION!,
 		endpoint,
-		// MinIO and friends are addressed as `<endpoint>/<bucket>/<key>`; AWS is not.
+		// RustFS and friends are addressed as `<endpoint>/<bucket>/<key>`; AWS is not.
 		forcePathStyle: env.WHALOC_S3_FORCE_PATH_STYLE ?? endpoint !== undefined,
 		credentials:
 			accessKeyId === undefined || secretAccessKey === undefined ? undefined : { accessKeyId, secretAccessKey },
@@ -222,7 +222,7 @@ export const appConfigSchema = z
 		WHALOC_MEDIA_DIR: z.string().min(1).default("./data/media"),
 		WHALOC_S3_BUCKET: z.string().min(1).optional(),
 		WHALOC_S3_REGION: z.string().min(1).optional(),
-		/** MinIO, R2, Ceph …; left unset the SDK talks to AWS S3 itself. */
+		/** RustFS, R2, Ceph …; left unset the SDK talks to AWS S3 itself. */
 		WHALOC_S3_ENDPOINT: httpUrl.optional(),
 		WHALOC_S3_ACCESS_KEY_ID: z.string().min(1).optional(),
 		WHALOC_S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),

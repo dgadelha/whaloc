@@ -228,7 +228,7 @@ describe("parseConfig", () => {
 		it("resolves the S3 settings when the backend is s3", () => {
 			const config = parseOrThrow({
 				...S3_MINIMUM,
-				WHALOC_S3_ENDPOINT: "http://minio:9000",
+				WHALOC_S3_ENDPOINT: "http://rustfs:9000",
 				WHALOC_S3_ACCESS_KEY_ID: "whaloc",
 				WHALOC_S3_SECRET_ACCESS_KEY: "whaloc-secret",
 			});
@@ -237,7 +237,7 @@ describe("parseConfig", () => {
 			expect(config.s3).toEqual({
 				bucket: "whaloc",
 				region: "us-east-1",
-				endpoint: "http://minio:9000",
+				endpoint: "http://rustfs:9000",
 				// An endpoint means an S3-compatible server, and those are path-style.
 				forcePathStyle: true,
 				credentials: { accessKeyId: "whaloc", secretAccessKey: "whaloc-secret" },
@@ -248,8 +248,8 @@ describe("parseConfig", () => {
 			expect(parseOrThrow(S3_MINIMUM).s3?.forcePathStyle).toBe(false);
 			expect(parseOrThrow({ ...S3_MINIMUM, WHALOC_S3_FORCE_PATH_STYLE: "true" }).s3?.forcePathStyle).toBe(true);
 			expect(
-				parseOrThrow({ ...S3_MINIMUM, WHALOC_S3_ENDPOINT: "http://minio:9000", WHALOC_S3_FORCE_PATH_STYLE: "false" }).s3
-					?.forcePathStyle,
+				parseOrThrow({ ...S3_MINIMUM, WHALOC_S3_ENDPOINT: "http://rustfs:9000", WHALOC_S3_FORCE_PATH_STYLE: "false" })
+					.s3?.forcePathStyle,
 			).toBe(false);
 		});
 
@@ -282,7 +282,7 @@ describe("parseConfig", () => {
 			]);
 		});
 
-		it.each(["ftp://minio:9000", "minio:9000"])("rejects the endpoint %o", endpoint => {
+		it.each(["ftp://rustfs:9000", "rustfs:9000"])("rejects the endpoint %o", endpoint => {
 			expect(errorsOf({ ...S3_MINIMUM, WHALOC_S3_ENDPOINT: endpoint })).toEqual([
 				expect.stringContaining("WHALOC_S3_ENDPOINT"),
 			]);
@@ -529,7 +529,7 @@ describe("describeConfig", () => {
 				WHALOC_MEDIA_BACKEND: "s3",
 				WHALOC_S3_BUCKET: "whaloc-media",
 				WHALOC_S3_REGION: "eu-west-1",
-				WHALOC_S3_ENDPOINT: "http://minio:9000",
+				WHALOC_S3_ENDPOINT: "http://rustfs:9000",
 				WHALOC_S3_ACCESS_KEY_ID: "AKIAEXAMPLE",
 				WHALOC_S3_SECRET_ACCESS_KEY: "super-secret-key",
 			}),
@@ -540,7 +540,7 @@ describe("describeConfig", () => {
 			s3: {
 				bucket: "whaloc-media",
 				region: "eu-west-1",
-				endpoint: "http://minio:9000",
+				endpoint: "http://rustfs:9000",
 				forcePathStyle: true,
 				credentials: "configured",
 			},

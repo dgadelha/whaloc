@@ -12,7 +12,7 @@ const S3_ENV = {
 
 /**
  * The one place `WHALOC_MEDIA_BACKEND` is read (SPEC §6). Building an S3 storage talks to
- * nothing — the client is lazy — so this runs without MinIO; the behavior behind the interface
+ * nothing — the client is lazy — so this runs without RustFS; the behavior behind the interface
  * is `s3-storage.spec.ts`'s job.
  */
 describe("createMediaStorage", () => {

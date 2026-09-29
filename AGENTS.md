@@ -18,7 +18,7 @@ npm run build         # shared → server → web, in that order (see "Build ord
 ```
 
 Scope any script with `--workspace @whaloc/server|shared|web`. The S3 storage specs are opt-in:
-they skip without `WHALOC_TEST_S3_ENDPOINT` (see README → Development for the one-line MinIO).
+they skip without `WHALOC_TEST_S3_ENDPOINT` (see README → Development for the one-line RustFS).
 npm only — no pnpm/yarn; corepack is not needed.
 
 ## Non-negotiable invariants
