@@ -1,4 +1,4 @@
-import type { MediaDescriptor } from "@whaloc/shared";
+import type { MediaDescriptor, MessageType } from "@whaloc/shared";
 import { useEffect, useState } from "react";
 import { describeError } from "../../api/client.ts";
 import { api } from "../../api/endpoints.ts";
@@ -135,6 +135,35 @@ export function MediaPreview(props: MediaPreviewProps) {
 					{mimeType || "unknown type"} · {formatBytes(media.fileSize)}
 				</span>
 			</span>
+		</a>
+	);
+}
+
+/**
+ * Media sent by `link` rather than an uploaded ID: nothing to resolve, so it renders straight
+ * from the URL — pictures, stickers, video and audio inline, anything else as a link. Plain
+ * media messages and template headers share it.
+ */
+export function LinkedMedia(props: { type: MessageType; link: string; filename: string | null }) {
+	const { type, link, filename } = props;
+
+	if (type === "image" || type === "sticker") {
+		return (
+			<img className={type === "sticker" ? "media__sticker" : "media__image"} src={link} alt={type} loading="lazy" />
+		);
+	}
+
+	if (type === "video") {
+		return <video className="media__video" src={link} controls preload="metadata" />;
+	}
+
+	if (type === "audio") {
+		return <audio className="media__audio" src={link} controls preload="metadata" />;
+	}
+
+	return (
+		<a className="media__document" href={link} target="_blank" rel="noreferrer">
+			{filename ?? link}
 		</a>
 	);
 }
