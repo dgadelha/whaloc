@@ -470,6 +470,115 @@ describe("POST /:phoneNumberId/messages (SPEC §2.5)", () => {
 	});
 
 	/**
+	 * The template a send was validated against is frozen on the message (SPEC §2.5), so the UI
+	 * renders what was delivered. It is control-plane state: the send response, the status
+	 * webhooks and their signed bytes stay exactly what Meta sends.
+	 */
+	describe("the template snapshot (SPEC §2.5)", () => {
+		const ORDER_COMPONENTS = [
+			{ type: "HEADER", format: "TEXT", text: "Order {{1}}" },
+			{ type: "BODY", text: "Order {{1}} ships on {{2}}" },
+			{ type: "BUTTONS", buttons: [{ type: "QUICK_REPLY", text: "Track it" }] },
+		];
+
+		function sendOrderUpdate() {
+			return send({
+				messaging_product: "whatsapp",
+				to: RECIPIENT,
+				type: "template",
+				template: {
+					name: "order_update",
+					language: { code: "en_US" },
+					components: [
+						{ type: "header", parameters: [{ type: "text", text: "A-1" }] },
+						{
+							type: "body",
+							parameters: [
+								{ type: "text", text: "A-1" },
+								{ type: "text", text: "Friday" },
+							],
+						},
+					],
+				},
+			});
+		}
+
+		it("stores the definition the send was validated against", async () => {
+			await createApprovedTemplate({ components: ORDER_COMPONENTS });
+
+			const id = await sentMessageId(await sendOrderUpdate());
+
+			expect(await fixture.services.repositories.messages.findById(id)).toMatchObject({
+				templateSnapshot: { parameterFormat: "POSITIONAL", components: ORDER_COMPONENTS },
+			});
+		});
+
+		it("survives the template being edited afterwards", async () => {
+			const templateId = await createApprovedTemplate({ components: ORDER_COMPONENTS });
+			const id = await sentMessageId(await sendOrderUpdate());
+
+			await fixture.services.repositories.templates.update(templateId, {
+				components: [{ type: "BODY", text: "Something else entirely" }],
+			});
+
+			const stored = await fixture.services.repositories.messages.findById(id);
+
+			expect(stored?.templateSnapshot?.components).toEqual(ORDER_COMPONENTS);
+		});
+
+		it("is exposed on the control-plane message", async () => {
+			await createApprovedTemplate({ components: ORDER_COMPONENTS });
+			await sendOrderUpdate();
+
+			const response = await fixture.app.request(`/api/conversations/${fixture.phoneNumberId}:${RECIPIENT}/messages`);
+			const body = await readJson<{ data: Record<string, unknown>[] }>(response);
+
+			expect(body.data.at(-1)).toMatchObject({
+				type: "template",
+				templateSnapshot: { parameterFormat: "POSITIONAL", components: ORDER_COMPONENTS },
+			});
+		});
+
+		it("is left off every other message type", async () => {
+			const id = await sentMessageId(await sendText());
+			const response = await fixture.app.request(`/api/conversations/${fixture.phoneNumberId}:${RECIPIENT}/messages`);
+			const body = await readJson<{ data: Record<string, unknown>[] }>(response);
+
+			expect(await fixture.services.repositories.messages.findById(id)).toMatchObject({ templateSnapshot: null });
+			expect(body.data.at(-1)).not.toHaveProperty("templateSnapshot");
+		});
+
+		it("never reaches the send response or a status webhook", async () => {
+			await createApprovedTemplate({ components: ORDER_COMPONENTS });
+
+			const response = await sendOrderUpdate();
+			const sent = await readJson<SendResponse>(response);
+
+			expect(Object.keys(sent).toSorted((left, right) => left.localeCompare(right))).toEqual([
+				"contacts",
+				"messages",
+				"messaging_product",
+			]);
+
+			await fixture.app.request(`/api/messages/${sent.messages[0]!.id}/status`, {
+				method: "POST",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify({ status: "delivered" }),
+			});
+			await fixture.services.domain.tasks.whenIdle();
+
+			const deliveries = await fixture.services.repositories.webhookDeliveries.list();
+			const statusBodies = deliveries.map(delivery => delivery.requestBody).filter(body => body.includes('"statuses"'));
+
+			expect(statusBodies.length).toBeGreaterThan(0);
+
+			for (const body of statusBodies) {
+				expect(body).not.toMatch(/template_snapshot|templateSnapshot|parameter_format|ships on/);
+			}
+		});
+	});
+
+	/**
 	 * The point of seeding a template (SPEC §7): a cold whaloc can answer a `type: "template"`
 	 * send without the consumer creating one and waiting for it to be approved first.
 	 */

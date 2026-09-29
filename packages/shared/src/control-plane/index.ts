@@ -153,12 +153,14 @@ export {
 	messageSchema,
 	messageStatusRequestSchema,
 	MESSAGE_ERROR_CODES,
+	templateSnapshotSchema,
 	type Message,
 	type MessageErrorCode,
 	type MessageErrorPreset,
 	type MessageErrorPresetListResponse,
 	type MessageResponse,
 	type MessageStatusRequest,
+	type TemplateSnapshot,
 } from "./messages.ts";
 export {
 	businessProfileSchema,

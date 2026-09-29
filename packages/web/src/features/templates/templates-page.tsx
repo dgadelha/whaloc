@@ -17,7 +17,7 @@ import { JsonBlock } from "../../components/json-block.tsx";
 import { formatTimestamp } from "../../lib/format.ts";
 import { useAction, useAppState, useDispatch, useToasts } from "../../store/store.tsx";
 import { RejectDialog } from "./reject-dialog.tsx";
-import { TemplatePreview } from "./template-preview.tsx";
+import { TemplateContent } from "./template-content.tsx";
 
 const STATUS_TONE: Record<TemplateStatus, string> = {
 	PENDING: "badge--warn",
@@ -156,7 +156,9 @@ function TemplateDetail(props: { template: Template; onClose: () => void }) {
 
 				<section>
 					<h3 className="card__title">Preview</h3>
-					<TemplatePreview template={template} />
+					<div className="preview">
+						<TemplateContent components={template.components} />
+					</div>
 				</section>
 
 				<section>

@@ -456,5 +456,63 @@ describe("state export/import", () => {
 			);
 			expect(after.wabas[0]!.phoneNumbers[0]!.pendingVerification).not.toBeNull();
 		});
+
+		/** The definition a template send was validated against (SPEC §2.5) rides in the row. */
+		describe("a template message's snapshot", () => {
+			async function sendSeededTemplate(): Promise<string> {
+				const response = await fixture.app.request(`/v25.0/${fixture.phoneNumberId}/messages`, {
+					method: "POST",
+					headers: { ...TEST_AUTH_HEADERS, "content-type": "application/json" },
+					body: JSON.stringify({
+						messaging_product: "whatsapp",
+						to: "16505551234",
+						type: "template",
+						template: { name: "hello_whaloc", language: { code: "en" } },
+					}),
+				});
+				const sent = await readJson<{ messages: { id: string }[] }>(response);
+
+				await settle();
+
+				return sent.messages[0]!.id;
+			}
+
+			it("round-trips through export and import", async () => {
+				const id = await sendSeededTemplate();
+				const before = await fixture.services.repositories.messages.findById(id);
+				const snapshot = await exportSnapshot();
+
+				expect(before?.templateSnapshot).not.toBeNull();
+
+				await fixture.app.request("/api/reset", { method: "POST" });
+				await importSnapshot(snapshot);
+
+				const after = await fixture.services.repositories.messages.findById(id);
+
+				expect(after?.templateSnapshot).toEqual(before?.templateSnapshot);
+			});
+
+			it("loads as none from a file written before whaloc kept one", async () => {
+				const id = await sendSeededTemplate();
+				const snapshot = await exportSnapshot();
+				const older = {
+					...snapshot,
+					tables: {
+						...snapshot.tables,
+						messages: snapshot.tables.messages.map(({ template_snapshot: _dropped, ...row }) => row),
+					},
+				};
+
+				await fixture.app.request("/api/reset", { method: "POST" });
+
+				const response = await importSnapshot(older);
+
+				expect(response.status).toBe(200);
+				expect(await fixture.services.repositories.messages.findById(id)).toMatchObject({
+					type: "template",
+					templateSnapshot: null,
+				});
+			});
+		});
 	});
 });

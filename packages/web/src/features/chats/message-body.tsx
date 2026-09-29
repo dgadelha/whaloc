@@ -1,7 +1,9 @@
 import type { JsonObject, Message } from "@whaloc/shared";
 import { JsonBlock } from "../../components/json-block.tsx";
 import { asArray, asNumber, asRecord, asString, readString } from "../../lib/json.ts";
+import { LocationCard } from "./location-card.tsx";
 import { MediaPreview } from "./media-preview.tsx";
+import { TemplateMessage } from "./template-message.tsx";
 
 /**
  * Renders the type-named node Meta puts in a webhook (SPEC §5) the way WhatsApp would show
@@ -46,24 +48,13 @@ function MediaNode(props: { message: Message; node: JsonObject }) {
 }
 
 function LocationNode(props: { node: JsonObject }) {
-	const latitude = asNumber(props.node["latitude"]);
-	const longitude = asNumber(props.node["longitude"]);
-	const name = asString(props.node["name"]);
-	const address = asString(props.node["address"]);
-
 	return (
-		<div className="bubble__location">
-			<span className="bubble__location-pin" aria-hidden="true">
-				◎
-			</span>
-			<div>
-				{name !== null && <p className="bubble__text">{name}</p>}
-				{address !== null && <p className="muted">{address}</p>}
-				<p className="faint mono">
-					{latitude?.toFixed(5) ?? "?"}, {longitude?.toFixed(5) ?? "?"}
-				</p>
-			</div>
-		</div>
+		<LocationCard
+			latitude={asNumber(props.node["latitude"])}
+			longitude={asNumber(props.node["longitude"])}
+			name={asString(props.node["name"])}
+			address={asString(props.node["address"])}
+		/>
 	);
 }
 
@@ -112,23 +103,6 @@ function InteractiveNode(props: { node: JsonObject }) {
 				))}
 			</div>
 			<span className="faint mono">interactive · {kind ?? "?"}</span>
-		</div>
-	);
-}
-
-function TemplateNode(props: { node: JsonObject }) {
-	const name = asString(props.node["name"]);
-	const language = readString(props.node, "language", "code");
-	const components = asArray(props.node["components"]);
-
-	return (
-		<div className="stack">
-			<div className="row row--wrap">
-				<span className="chip">template</span>
-				<span className="bubble__text">{name ?? "?"}</span>
-				<span className="faint mono">{language ?? ""}</span>
-			</div>
-			{components.length > 0 && <JsonBlock value={components} className="bubble__json" />}
 		</div>
 	);
 }
@@ -185,7 +159,7 @@ export function MessageBody(props: { message: Message }) {
 		}
 
 		case "template": {
-			return node === null ? <JsonBlock value={message.payload} /> : <TemplateNode node={node} />;
+			return node === null ? <JsonBlock value={message.payload} /> : <TemplateMessage message={message} node={node} />;
 		}
 
 		case "button": {

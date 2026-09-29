@@ -310,6 +310,21 @@ export const MIGRATIONS: Record<string, Migration> = {
 				.execute();
 		},
 	},
+
+	/**
+	 * The template definition a `template` send was validated against (SPEC §2.5), frozen on
+	 * the message so the UI can render what was delivered rather than whatever the template
+	 * says today.
+	 *
+	 * `messages.template_snapshot` is nullable with no backfill: every other type has nothing to
+	 * keep, and a template message stored before this migration never kept one — its template
+	 * may have changed since, so reconstructing one would be a guess dressed up as a record.
+	 */
+	"0007_message_template_snapshot": {
+		up: async (db: Kysely<never>): Promise<void> => {
+			await db.schema.alterTable("messages").addColumn("template_snapshot", "text").execute();
+		},
+	},
 };
 
 /** Serves {@link MIGRATIONS} to Kysely's `Migrator`. */

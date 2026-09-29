@@ -104,6 +104,9 @@ const messageRowSchema = z.object({
 	// Added after the first snapshots were written (SPEC §2.5), so a file that predates it loads
 	// as the `null` those messages carried rather than being refused for a column it never had.
 	biz_opaque_callback_data: nullable(z.string()).default(null),
+	// Likewise for the template a send was validated against (SPEC §2.5): an older file's
+	// template messages load without one, exactly as they were stored.
+	template_snapshot: nullable(jsonText).default(null),
 	timestamp,
 	created_at: timestamp,
 	updated_at: timestamp,
