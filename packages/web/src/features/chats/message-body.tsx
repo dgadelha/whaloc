@@ -1,6 +1,7 @@
 import type { JsonObject, Message } from "@whaloc/shared";
 import { JsonBlock } from "../../components/json-block.tsx";
 import { asArray, asNumber, asRecord, asString, readString } from "../../lib/json.ts";
+import { InteractiveMessage } from "./interactive-message.tsx";
 import { LocationCard } from "./location-card.tsx";
 import { LinkedMedia, MediaPreview } from "./media-preview.tsx";
 import { TemplateMessage } from "./template-message.tsx";
@@ -56,55 +57,6 @@ function LocationNode(props: { node: JsonObject }) {
 	);
 }
 
-function InteractiveNode(props: { node: JsonObject }) {
-	const { node } = props;
-	const kind = asString(node["type"]);
-	const reply = asRecord(node["button_reply"]) ?? asRecord(node["list_reply"]);
-
-	// Inbound: the user tapped a button or picked a list row.
-	if (reply !== null) {
-		return (
-			<div className="bubble__reply">
-				<span className="bubble__reply-title">{asString(reply["title"]) ?? "reply"}</span>
-				{asString(reply["description"]) !== null && <span className="muted">{asString(reply["description"])}</span>}
-				<span className="chip">{asString(reply["id"]) ?? ""}</span>
-			</div>
-		);
-	}
-
-	// Outbound: the menu the app under test sent.
-	const buttons = asArray(asRecord(node["action"])?.["buttons"]).flatMap(button => {
-		const title = readString(button, "reply", "title");
-
-		return title === null ? [] : [title];
-	});
-	const rows = asArray(asRecord(node["action"])?.["sections"]).flatMap(section => {
-		return asArray(asRecord(section)?.["rows"]).flatMap(row => {
-			const title = readString(row, "title");
-
-			return title === null ? [] : [title];
-		});
-	});
-
-	return (
-		<div className="bubble__interactive">
-			{readString(node, "header", "text") !== null && (
-				<p className="bubble__header">{readString(node, "header", "text")}</p>
-			)}
-			<Caption text={readString(node, "body", "text")} />
-			{readString(node, "footer", "text") !== null && <p className="faint">{readString(node, "footer", "text")}</p>}
-			<div className="bubble__buttons">
-				{[...buttons, ...rows].map(label => (
-					<span key={label} className="bubble__button">
-						{label}
-					</span>
-				))}
-			</div>
-			<span className="faint mono">interactive · {kind ?? "?"}</span>
-		</div>
-	);
-}
-
 function ContactsNode(props: { cards: unknown[] }) {
 	return (
 		<div className="stack">
@@ -153,7 +105,11 @@ export function MessageBody(props: { message: Message }) {
 		}
 
 		case "interactive": {
-			return node === null ? <JsonBlock value={message.payload} /> : <InteractiveNode node={node} />;
+			return node === null ? (
+				<JsonBlock value={message.payload} />
+			) : (
+				<InteractiveMessage message={message} node={node} />
+			);
 		}
 
 		case "template": {
