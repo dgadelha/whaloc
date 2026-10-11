@@ -253,4 +253,18 @@ describe("interactive menus", () => {
 
 		expect(fetchMock).not.toHaveBeenCalled();
 	});
+
+	it.each(["vscode://file/etc/passwd", "javascript:alert(1)", "/relative/checklist"])(
+		"shows a cta_url to %s as plain text, not a link",
+		url => {
+			renderInteractive({
+				type: "cta_url",
+				action: { name: "cta_url", parameters: { display_text: "Open checklist", url } },
+			});
+
+			expect(screen.queryByRole("link")).toBeNull();
+			expect(screen.getByText("Open checklist")).toBeDefined();
+			expect(screen.getByText(url)).toBeDefined();
+		},
+	);
 });

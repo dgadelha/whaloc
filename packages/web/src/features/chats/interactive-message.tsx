@@ -179,16 +179,36 @@ function ListMenu(props: { menu: Message; label: string; sections: unknown[] }) 
 	);
 }
 
+/** Only an absolute http(s) URL becomes a live link; any other scheme could act on the tester's machine. */
+function isWebUrl(url: string): boolean {
+	const protocol = URL.parse(url)?.protocol;
+
+	return protocol === "http:" || protocol === "https:";
+}
+
 /** A `cta_url` produces no inbound message on WhatsApp either: its button only opens the link. */
 function CtaUrl(props: { label: string; url: string }) {
+	const content = (
+		<>
+			<span className="template__button-icon" aria-hidden="true">
+				↗
+			</span>
+			<span>{props.label}</span>
+		</>
+	);
+
 	return (
 		<div className="template__buttons">
-			<a className="template__button" href={props.url} target="_blank" rel="noreferrer" title={props.url}>
-				<span className="template__button-icon" aria-hidden="true">
-					↗
-				</span>
-				<span>{props.label}</span>
-			</a>
+			{isWebUrl(props.url) ? (
+				<a className="template__button" href={props.url} target="_blank" rel="noreferrer" title={props.url}>
+					{content}
+				</a>
+			) : (
+				<div className="template__button">
+					{content}
+					<span className="faint mono">{props.url}</span>
+				</div>
+			)}
 		</div>
 	);
 }
