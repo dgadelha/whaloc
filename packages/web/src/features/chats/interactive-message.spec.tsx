@@ -135,6 +135,65 @@ describe("interactive menus", () => {
 		expect(requestBodyOf(fetchMock)).not.toHaveProperty("interactive.list_reply.description");
 	});
 
+	it("sends a row's id, title and description exactly as the menu has them, whitespace included", async () => {
+		renderInteractive({
+			type: "list",
+			action: {
+				button: "Pick a slot",
+				sections: [{ rows: [{ id: " slot-9 ", title: " 09:00 ", description: " Before check-out " }] }],
+			},
+		});
+
+		fireEvent.click(screen.getByRole("button", { name: "Pick a slot" }));
+		fireEvent.click(screen.getByRole("button", { name: /09:00/ }));
+
+		await waitFor(() => {
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+		});
+
+		expect(requestBodyOf(fetchMock)).toMatchObject({
+			interactive: {
+				type: "list_reply",
+				list_reply: { id: " slot-9 ", title: " 09:00 ", description: " Before check-out " },
+			},
+		});
+	});
+
+	it("keeps a row's explicitly empty description", async () => {
+		renderInteractive({
+			type: "list",
+			action: { button: "Pick a slot", sections: [{ rows: [{ id: "slot-9", title: "09:00", description: "" }] }] },
+		});
+
+		fireEvent.click(screen.getByRole("button", { name: "Pick a slot" }));
+		fireEvent.click(screen.getByRole("button", { name: /09:00/ }));
+
+		await waitFor(() => {
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+		});
+
+		expect(requestBodyOf(fetchMock)).toMatchObject({
+			interactive: { type: "list_reply", list_reply: { id: "slot-9", title: "09:00", description: "" } },
+		});
+	});
+
+	it("sends a reply button's id and title untrimmed", async () => {
+		renderInteractive({
+			type: "button",
+			action: { buttons: [{ type: "reply", reply: { id: " start-yes ", title: " Yes " } }] },
+		});
+
+		fireEvent.click(screen.getByRole("button", { name: "Yes" }));
+
+		await waitFor(() => {
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+		});
+
+		expect(requestBodyOf(fetchMock)).toMatchObject({
+			interactive: { type: "button_reply", button_reply: { id: " start-yes ", title: " Yes " } },
+		});
+	});
+
 	it("opens a cta_url button's link instead of sending anything", () => {
 		renderInteractive({
 			type: "cta_url",

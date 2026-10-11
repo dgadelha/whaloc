@@ -141,6 +141,35 @@ function validate(candidate: unknown): BuildResult {
 	return parsed.success ? { ok: true, request: parsed.data } : { ok: false, error: describeIssues(parsed.error) };
 }
 
+/** A reply button or list row as the menu that offered it carries it. */
+export interface MenuChoice {
+	replyType: "button_reply" | "list_reply";
+	id: string;
+	title: string;
+	/** A list row's description; `null` when the row has none. Ignored for a button. */
+	description: string | null;
+}
+
+/**
+ * The reply a tap on a menu choice sends. Unlike typed input it is not trimmed or blank-dropped:
+ * the app under test matches the reply against the IDs it sent, so they must come back verbatim.
+ */
+export function buildMenuChoiceRequest(context: ComposerContext, choice: MenuChoice): BuildResult {
+	const reply = {
+		id: choice.id,
+		title: choice.title,
+		...(choice.replyType === "list_reply" && choice.description !== null && { description: choice.description }),
+	};
+
+	return validate({
+		phoneNumberId: context.phoneNumberId,
+		from: context.from,
+		...(context.replyTo !== undefined && { replyTo: context.replyTo }),
+		type: "interactive",
+		interactive: { type: choice.replyType, [choice.replyType]: reply },
+	});
+}
+
 export function buildInboundRequest(
 	context: ComposerContext,
 	draft: ComposerDraft,

@@ -4,7 +4,7 @@ import { api } from "../../api/endpoints.ts";
 import { Dialog } from "../../components/dialog.tsx";
 import { asArray, asRecord, asString, readString } from "../../lib/json.ts";
 import { useToasts } from "../../store/store.tsx";
-import { buildInboundRequest } from "./composer-payload.ts";
+import { buildMenuChoiceRequest, type MenuChoice } from "./composer-payload.ts";
 
 /**
  * An `interactive` message (SPEC §5). Inbound, it is the reply the user picked; outbound, it is
@@ -13,21 +13,14 @@ import { buildInboundRequest } from "./composer-payload.ts";
  * Meta's `context` does on a real one.
  */
 
-interface ReplyChoice {
-	replyType: "button_reply" | "list_reply";
-	id: string;
-	title: string;
-	description: string;
-}
-
 /** Sends the reply a tap on `menu` produces; a refusal surfaces as a toast, like the composer's. */
-function useReply(menu: Message): (choice: ReplyChoice) => void {
+function useReply(menu: Message): (choice: MenuChoice) => void {
 	const toasts = useToasts();
 
 	return choice => {
-		const built = buildInboundRequest(
+		const built = buildMenuChoiceRequest(
 			{ phoneNumberId: menu.phoneNumberId, from: menu.contactWaId, replyTo: menu.id },
-			{ kind: "interactive", ...choice },
+			choice,
 		);
 
 		if (!built.ok) {
@@ -64,7 +57,7 @@ function ReplyButtons(props: { menu: Message; buttons: unknown[] }) {
 					className="template__button interactive__tap"
 					title={choice.id}
 					onClick={() => {
-						reply({ replyType: "button_reply", id: choice.id, title: choice.title, description: "" });
+						reply({ replyType: "button_reply", id: choice.id, title: choice.title, description: null });
 					}}
 				>
 					<span className="template__button-icon" aria-hidden="true">
@@ -143,7 +136,7 @@ function ListMenu(props: { menu: Message; label: string; sections: unknown[] }) 
 												replyType: "list_reply",
 												id: row.id,
 												title: row.title,
-												description: row.description ?? "",
+												description: row.description,
 											});
 										}}
 									>
