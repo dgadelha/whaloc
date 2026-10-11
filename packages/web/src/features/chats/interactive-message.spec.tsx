@@ -194,6 +194,49 @@ describe("interactive menus", () => {
 		});
 	});
 
+	it("sends one reply for a double tap while the first is in flight, and accepts a tap again once it lands", async () => {
+		const response = Promise.withResolvers<Response>();
+
+		fetchMock.mockImplementation(() => response.promise);
+		renderInteractive(BUTTON_MENU);
+
+		const later = screen.getByRole("button", { name: "Later" });
+
+		fireEvent.click(later);
+		fireEvent.click(later);
+		fireEvent.click(screen.getByRole("button", { name: "Yes" }));
+
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect((later as HTMLButtonElement).disabled).toBe(true);
+
+		response.resolve(jsonResponse({ data: makeMessage({ direction: "inbound" }) }, 201));
+
+		await waitFor(() => {
+			expect((later as HTMLButtonElement).disabled).toBe(false);
+		});
+
+		fireEvent.click(later);
+
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
+	it("accepts a tap again after a reply fails", async () => {
+		fetchMock.mockImplementation(() => Promise.reject(new Error("offline")));
+		renderInteractive(BUTTON_MENU);
+
+		const later = screen.getByRole("button", { name: "Later" });
+
+		fireEvent.click(later);
+
+		await waitFor(() => {
+			expect((later as HTMLButtonElement).disabled).toBe(false);
+		});
+
+		fireEvent.click(later);
+
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
 	it("opens a cta_url button's link instead of sending anything", () => {
 		renderInteractive({
 			type: "cta_url",

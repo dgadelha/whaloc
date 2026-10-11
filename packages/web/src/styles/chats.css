@@ -455,8 +455,14 @@ a.template__button:hover {
 	cursor: pointer;
 }
 
-.interactive__tap:hover {
+.interactive__tap:hover:not(:disabled) {
 	text-decoration: underline;
+}
+
+.interactive__tap:disabled,
+.interactive__row:disabled {
+	opacity: 0.55;
+	cursor: progress;
 }
 
 .interactive__list {
@@ -492,7 +498,7 @@ a.template__button:hover {
 	cursor: pointer;
 }
 
-.interactive__row:hover {
+.interactive__row:hover:not(:disabled) {
 	background: var(--surface-2);
 }
 

@@ -1,5 +1,5 @@
 import type { JsonObject, Message } from "@whaloc/shared";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { api } from "../../api/endpoints.ts";
 import { Dialog } from "../../components/dialog.tsx";
 import { asArray, asRecord, asString, readString } from "../../lib/json.ts";
@@ -13,11 +13,27 @@ import { buildMenuChoiceRequest, type MenuChoice } from "./composer-payload.ts";
  * Meta's `context` does on a real one.
  */
 
-/** Sends the reply a tap on `menu` produces; a refusal surfaces as a toast, like the composer's. */
-function useReply(menu: Message): (choice: MenuChoice) => void {
-	const toasts = useToasts();
+interface Replier {
+	reply: (choice: MenuChoice) => void;
+	/** A reply is in flight; the menu's choices are disabled until it lands or fails. */
+	pending: boolean;
+}
 
-	return choice => {
+/**
+ * Sends the reply a tap on `menu` produces; a refusal surfaces as a toast, like the composer's.
+ * One reply at a time: the ref turns away a second tap in the same tick, before the disabled
+ * state has rendered, so a double click cannot send the reply twice.
+ */
+function useReply(menu: Message): Replier {
+	const toasts = useToasts();
+	const inFlight = useRef(false);
+	const [pending, setPending] = useState(false);
+
+	const reply = (choice: MenuChoice) => {
+		if (inFlight.current) {
+			return;
+		}
+
 		const built = buildMenuChoiceRequest(
 			{ phoneNumberId: menu.phoneNumberId, from: menu.contactWaId, replyTo: menu.id },
 			choice,
@@ -29,18 +45,25 @@ function useReply(menu: Message): (choice: MenuChoice) => void {
 			return;
 		}
 
+		inFlight.current = true;
+		setPending(true);
 		void (async () => {
 			try {
 				await api.sendInbound(built.request);
 			} catch (error_) {
 				toasts.error(error_);
+			} finally {
+				inFlight.current = false;
+				setPending(false);
 			}
 		})();
 	};
+
+	return { reply, pending };
 }
 
 function ReplyButtons(props: { menu: Message; buttons: unknown[] }) {
-	const reply = useReply(props.menu);
+	const { reply, pending } = useReply(props.menu);
 	const choices = props.buttons.flatMap(button => {
 		const id = readString(button, "reply", "id");
 		const title = readString(button, "reply", "title");
@@ -56,6 +79,7 @@ function ReplyButtons(props: { menu: Message; buttons: unknown[] }) {
 					type="button"
 					className="template__button interactive__tap"
 					title={choice.id}
+					disabled={pending}
 					onClick={() => {
 						reply({ replyType: "button_reply", id: choice.id, title: choice.title, description: null });
 					}}
@@ -95,7 +119,7 @@ function readSections(sections: unknown[]): ListSection[] {
 
 /** A list is one button under the bubble; tapping it opens the sections, and picking a row replies. */
 function ListMenu(props: { menu: Message; label: string; sections: unknown[] }) {
-	const reply = useReply(props.menu);
+	const { reply, pending } = useReply(props.menu);
 	const [open, setOpen] = useState(false);
 	const sections = readSections(props.sections);
 
@@ -104,6 +128,7 @@ function ListMenu(props: { menu: Message; label: string; sections: unknown[] }) 
 			<button
 				type="button"
 				className="template__button interactive__tap"
+				disabled={pending}
 				onClick={() => {
 					setOpen(true);
 				}}
@@ -130,6 +155,7 @@ function ListMenu(props: { menu: Message; label: string; sections: unknown[] }) 
 										type="button"
 										className="interactive__row"
 										title={row.id}
+										disabled={pending}
 										onClick={() => {
 											setOpen(false);
 											reply({
