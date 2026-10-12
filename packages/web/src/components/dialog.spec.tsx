@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Dialog } from "./dialog.tsx";
@@ -37,8 +37,55 @@ function Opener(props: { children?: ReactNode }) {
 	);
 }
 
-function pressTab(isShifted = false): void {
-	fireEvent.keyDown(document.activeElement ?? document.body, { key: "Tab", shiftKey: isShifted });
+/** Presses Tab and returns whether the dialog cancelled it, i.e. took over moving focus itself. */
+function didCancelTab(isShifted = false): boolean {
+	return !fireEvent.keyDown(document.activeElement ?? document.body, { key: "Tab", shiftKey: isShifted });
+}
+
+/** The list menu's shape: picking a row closes the dialog and disables the opener until the reply settles. */
+function PendingOpener() {
+	const [open, setOpen] = useState(false);
+	const [pending, setPending] = useState(false);
+
+	return (
+		<>
+			<button
+				type="button"
+				disabled={pending}
+				onClick={() => {
+					setOpen(true);
+				}}
+			>
+				Open
+			</button>
+			<button
+				type="button"
+				onClick={() => {
+					setPending(false);
+				}}
+			>
+				Settle
+			</button>
+			{open && (
+				<Dialog
+					title="Example"
+					onClose={() => {
+						setOpen(false);
+					}}
+				>
+					<button
+						type="button"
+						onClick={() => {
+							setOpen(false);
+							setPending(true);
+						}}
+					>
+						Row
+					</button>
+				</Dialog>
+			)}
+		</>
+	);
 }
 
 describe("Dialog", () => {
@@ -86,11 +133,12 @@ describe("Dialog", () => {
 	it("leaves focus alone when a child already took it", () => {
 		render(
 			<Dialog title="Example" onClose={vi.fn()}>
-				<input aria-label="Name" autoFocus />
+				<input aria-label="Name" />
+				<input aria-label="Email" autoFocus />
 			</Dialog>,
 		);
 
-		expect(document.activeElement).toBe(screen.getByLabelText("Name"));
+		expect(document.activeElement).toBe(screen.getByLabelText("Email"));
 	});
 
 	it("wraps Tab from the last element to the first", () => {
@@ -98,8 +146,7 @@ describe("Dialog", () => {
 		fireEvent.click(screen.getByRole("button", { name: "Open" }));
 		screen.getByRole("button", { name: "Save" }).focus();
 
-		pressTab();
-
+		expect(didCancelTab()).toBe(true);
 		expect(document.activeElement).toBe(screen.getByRole("button", { name: "Close" }));
 	});
 
@@ -108,8 +155,7 @@ describe("Dialog", () => {
 		fireEvent.click(screen.getByRole("button", { name: "Open" }));
 		screen.getByRole("button", { name: "Close" }).focus();
 
-		pressTab(true);
-
+		expect(didCancelTab(true)).toBe(true);
 		expect(document.activeElement).toBe(screen.getByRole("button", { name: "Save" }));
 	});
 
@@ -122,9 +168,8 @@ describe("Dialog", () => {
 		fireEvent.click(screen.getByRole("button", { name: "Open" }));
 		screen.getByLabelText("Name").focus();
 
-		pressTab();
-
-		expect(document.activeElement).toBe(screen.getByLabelText("Name"));
+		expect(didCancelTab()).toBe(false);
+		expect(didCancelTab(true)).toBe(false);
 	});
 
 	it("hands focus back to the opener on close", () => {
@@ -141,5 +186,25 @@ describe("Dialog", () => {
 
 		expect(screen.queryByRole("dialog")).toBeNull();
 		expect(document.activeElement).toBe(open);
+	});
+
+	it("hands focus back to an opener disabled on close once it is enabled again", async () => {
+		render(<PendingOpener />);
+
+		const open = screen.getByRole("button", { name: "Open" });
+
+		open.focus();
+		fireEvent.click(open);
+		fireEvent.click(screen.getByRole("button", { name: "Row" }));
+
+		expect(screen.queryByRole("dialog")).toBeNull();
+		expect(open).toHaveProperty("disabled", true);
+
+		// fireEvent does not move focus, so the click stands in for the request settling.
+		fireEvent.click(screen.getByRole("button", { name: "Settle" }));
+
+		await waitFor(() => {
+			expect(document.activeElement).toBe(open);
+		});
 	});
 });

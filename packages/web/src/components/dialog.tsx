@@ -49,9 +49,32 @@ export function Dialog(props: DialogProps) {
 		}
 
 		return () => {
-			if (opener instanceof HTMLElement && opener.isConnected) {
-				opener.focus();
+			if (!(opener instanceof HTMLElement) || !opener.isConnected) {
+				return;
 			}
+
+			if (!opener.matches(":disabled")) {
+				opener.focus();
+
+				return;
+			}
+
+			// A caller can disable the opener in the same update that closes the dialog — a list
+			// row closes it and starts its reply at once — and a disabled element ignores focus().
+			// Focus waits for the opener to come back, unless the user has moved it meanwhile.
+			const observer = new MutationObserver(() => {
+				if (opener.matches(":disabled")) {
+					return;
+				}
+
+				observer.disconnect();
+
+				if (opener.isConnected && (document.activeElement === null || document.activeElement === document.body)) {
+					opener.focus();
+				}
+			});
+
+			observer.observe(opener, { attributes: true, attributeFilter: ["disabled"] });
 		};
 	}, [opener]);
 
