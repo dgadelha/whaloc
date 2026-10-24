@@ -1,13 +1,16 @@
 import type { JsonObject, Message, TemplateSnapshot } from "@whaloc/shared";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { StoreProvider } from "../../store/store.tsx";
 import type { AppState } from "../../store/types.ts";
 import {
+	CONTACT_WA_ID,
 	jsonResponse,
 	makeAppState,
 	makeMessage,
 	makeTemplate,
+	PHONE_NUMBER_ID,
+	requestBodyOf,
 	SECOND_WABA_ID,
 	stubFetch,
 } from "../../test/factories.ts";
@@ -396,6 +399,73 @@ describe("a template message", () => {
 			expect(screen.getByText("template").classList.contains("chip")).toBe(true);
 			expect(screen.getByText("order_update")).toBeTruthy();
 			expect(document.querySelector(".json")?.textContent).toContain('"text": "B-42"');
+		});
+	});
+});
+
+describe("a template message's quick replies", () => {
+	const QUICK_REPLY_PAYLOAD = {
+		type: "button",
+		sub_type: "quick_reply",
+		index: "0",
+		parameters: [{ type: "payload", payload: "talk-B-42" }],
+	};
+
+	function stubInbound() {
+		return stubFetch(() => Promise.resolve(jsonResponse({ data: makeMessage({ direction: "inbound" }) }, 201)));
+	}
+
+	it("sends a button message with the payload the send gave the button, quoting the template", async () => {
+		const fetchMock = stubInbound();
+
+		renderBody({ ...templateMessage({ components: [QUICK_REPLY_PAYLOAD] }), id: "wamid.template" });
+		fireEvent.click(screen.getByRole("button", { name: "Talk to us" }));
+
+		await waitFor(() => {
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+		});
+
+		expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/inbound");
+		expect(requestBodyOf(fetchMock)).toEqual({
+			phoneNumberId: PHONE_NUMBER_ID,
+			from: CONTACT_WA_ID,
+			replyTo: "wamid.template",
+			type: "button",
+			button: { payload: "talk-B-42", text: "Talk to us" },
+		});
+	});
+
+	it("sends the button's text as the payload when the send set none", async () => {
+		const fetchMock = stubInbound();
+
+		renderBody(templateMessage({}));
+		fireEvent.click(screen.getByRole("button", { name: "Talk to us" }));
+
+		await waitFor(() => {
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+		});
+
+		expect(requestBodyOf(fetchMock)).toMatchObject({ button: { payload: "Talk to us", text: "Talk to us" } });
+	});
+
+	it("sends one reply for a double tap while the first is in flight", async () => {
+		const response = Promise.withResolvers<Response>();
+		const fetchMock = stubFetch(() => response.promise);
+
+		renderBody(templateMessage({ components: [QUICK_REPLY_PAYLOAD] }));
+
+		const talk = screen.getByRole("button", { name: "Talk to us" });
+
+		fireEvent.click(talk);
+		fireEvent.click(talk);
+
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect((talk as HTMLButtonElement).disabled).toBe(true);
+
+		response.resolve(jsonResponse({ data: makeMessage({ direction: "inbound" }) }, 201));
+
+		await waitFor(() => {
+			expect((talk as HTMLButtonElement).disabled).toBe(false);
 		});
 	});
 });

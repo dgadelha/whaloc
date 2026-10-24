@@ -443,7 +443,7 @@ a.template__button:hover {
 	align-self: stretch;
 }
 
-/* The tappable rows of an interactive menu are <button>s, so they shed the native chrome. */
+/* The tappable rows of an interactive menu or a template's quick replies are <button>s, so they shed the native chrome. */
 .interactive__tap {
 	width: 100%;
 	border-right: 0;

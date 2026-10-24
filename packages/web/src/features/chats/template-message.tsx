@@ -6,6 +6,8 @@ import { useAppState } from "../../store/store.tsx";
 import type { AppState } from "../../store/types.ts";
 import { TemplateContent } from "../templates/template-content.tsx";
 import { createTemplateFill } from "../templates/template-fill.ts";
+import { buildTemplateButtonRequest } from "./composer-payload.ts";
+import { useQuotedReply } from "./use-quoted-reply.ts";
 
 /**
  * An outbound `template` message, rendered as the recipient saw it (SPEC §2.5).
@@ -15,6 +17,9 @@ import { createTemplateFill } from "../templates/template-fill.ts";
  * message, so that is what renders — not whatever the template says today. A message stored
  * before whaloc kept one borrows the definition the store already holds for that WABA, name
  * and language, labelled as such; with neither, the bubble shows what it always did.
+ *
+ * Its quick replies are live: a tap sends the `button` message WhatsApp would, with the payload
+ * the send gave that button, quoting the template.
  */
 
 interface Definition {
@@ -58,6 +63,7 @@ export function TemplateMessage(props: { message: Message; node: JsonObject }) {
 	const sendComponents = asArray(node["components"]);
 	const definition = useDefinition(message, name, language);
 	const [showRaw, setShowRaw] = useState(false);
+	const { send, pending } = useQuotedReply(message);
 
 	if (definition === null) {
 		return (
@@ -77,6 +83,12 @@ export function TemplateMessage(props: { message: Message; node: JsonObject }) {
 			<TemplateContent
 				components={definition.snapshot.components}
 				fill={createTemplateFill(definition.snapshot.parameterFormat, sendComponents)}
+				quickReply={{
+					tap: choice => {
+						send(context => buildTemplateButtonRequest(context, choice));
+					},
+					pending,
+				}}
 			/>
 			<div className="template__meta faint mono">
 				<span>
