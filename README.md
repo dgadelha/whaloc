@@ -599,7 +599,8 @@ deletion arriving over the WebSocket moves the URL the same way.
   and a `referred_product` — and survives a type switch, because it describes how the message
   arrived rather than what is in it. An interactive menu the app under test sent can be answered
   in place: tapping a reply button or a list row sends that `button_reply` / `list_reply` with its
-  ID, quoting the menu, and a `cta_url` button opens its link. Each outbound message has the manual half of the status ladder on
+  ID, quoting the menu, and a `cta_url` button opens its link. A template's quick-reply button
+  answers the same way: the tap sends the `button` message with the payload the send gave it. Each outbound message has the manual half of the status ladder on
   it — mark delivered, mark read, or fail with one of the error presets. The other direction
   shows what the app under test did: a faint double check on the user's message once it called
   the read receipt, and a typing bubble (also `typing…` in the conversation list) while it has a

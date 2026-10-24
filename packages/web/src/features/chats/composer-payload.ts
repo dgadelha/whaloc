@@ -170,6 +170,26 @@ export function buildMenuChoiceRequest(context: ComposerContext, choice: MenuCho
 	});
 }
 
+/** A template's quick reply as the send set it up: the `payload` its button carried and its label. */
+export interface TemplateButtonChoice {
+	payload: string;
+	text: string;
+}
+
+/**
+ * The `button` message a tap on a template's quick reply sends. Verbatim, like a menu choice: the
+ * app under test matches `payload` against the one its send carried.
+ */
+export function buildTemplateButtonRequest(context: ComposerContext, choice: TemplateButtonChoice): BuildResult {
+	return validate({
+		phoneNumberId: context.phoneNumberId,
+		from: context.from,
+		...(context.replyTo !== undefined && { replyTo: context.replyTo }),
+		type: "button",
+		button: { payload: choice.payload, text: choice.text },
+	});
+}
+
 export function buildInboundRequest(
 	context: ComposerContext,
 	draft: ComposerDraft,

@@ -1,10 +1,9 @@
 import type { JsonObject, Message } from "@whaloc/shared";
-import { useRef, useState } from "react";
-import { api } from "../../api/endpoints.ts";
+import { useState } from "react";
 import { Dialog } from "../../components/dialog.tsx";
 import { asArray, asRecord, asString, readString } from "../../lib/json.ts";
-import { useToasts } from "../../store/store.tsx";
 import { buildMenuChoiceRequest, type MenuChoice } from "./composer-payload.ts";
+import { useQuotedReply } from "./use-quoted-reply.ts";
 
 /**
  * An `interactive` message (SPEC §5). Inbound, it is the reply the user picked; outbound, it is
@@ -19,47 +18,16 @@ interface Replier {
 	pending: boolean;
 }
 
-/**
- * Sends the reply a tap on `menu` produces; a refusal surfaces as a toast, like the composer's.
- * One reply at a time: the ref turns away a second tap in the same tick, before the disabled
- * state has rendered, so a double click cannot send the reply twice.
- */
+/** The reply a tap on `menu` produces, sent through {@link useQuotedReply}. */
 function useReply(menu: Message): Replier {
-	const toasts = useToasts();
-	const inFlight = useRef(false);
-	const [pending, setPending] = useState(false);
+	const { send, pending } = useQuotedReply(menu);
 
-	const reply = (choice: MenuChoice) => {
-		if (inFlight.current) {
-			return;
-		}
-
-		const built = buildMenuChoiceRequest(
-			{ phoneNumberId: menu.phoneNumberId, from: menu.contactWaId, replyTo: menu.id },
-			choice,
-		);
-
-		if (!built.ok) {
-			toasts.error(new Error(built.error));
-
-			return;
-		}
-
-		inFlight.current = true;
-		setPending(true);
-		void (async () => {
-			try {
-				await api.sendInbound(built.request);
-			} catch (error_) {
-				toasts.error(error_);
-			} finally {
-				inFlight.current = false;
-				setPending(false);
-			}
-		})();
+	return {
+		reply: choice => {
+			send(context => buildMenuChoiceRequest(context, choice));
+		},
+		pending,
 	};
-
-	return { reply, pending };
 }
 
 function ReplyButtons(props: { menu: Message; buttons: unknown[] }) {

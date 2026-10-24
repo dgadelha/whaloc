@@ -1,6 +1,7 @@
 import type { JsonObject, UploadDescriptor } from "@whaloc/shared";
 import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { api } from "../../api/endpoints.ts";
+import type { TemplateButtonChoice } from "../chats/composer-payload.ts";
 import { LocationCard } from "../chats/location-card.tsx";
 import { LinkedMedia, MediaPreview, mediaSrc } from "../chats/media-preview.tsx";
 import { asArray, asRecord, asString } from "../../lib/json.ts";
@@ -228,11 +229,30 @@ function ButtonRow(props: { icon: string; label: string; href?: string; detail?:
 	);
 }
 
+/** What a chat bubble does when its quick replies are tapped. */
+export interface QuickReplyTaps {
+	tap: (choice: TemplateButtonChoice) => void;
+	/** A reply is in flight; the quick replies are disabled until it lands or fails. */
+	pending: boolean;
+}
+
+/**
+ * The `payload` the send gave a quick reply. Meta delivers the button's text as the payload of
+ * a tap on a quick reply the send set none for, so that is the fallback.
+ */
+function quickReplyPayload(parameters: readonly JsonObject[], text: string): string {
+	const sent = parameters.find(parameter => asString(parameter["type"])?.toLowerCase() === "payload");
+
+	return (sent === undefined ? null : asString(sent["payload"])) ?? text;
+}
+
 /**
  * The buttons as the recipient sees them: one full-width row each, with what tapping does.
  * Types beyond the common four (flows, catalogs, …) keep their label and a neutral icon.
  */
-function SentButtons(props: { buttons: unknown[]; fill: TemplateFill }) {
+function SentButtons(props: { buttons: unknown[]; fill: TemplateFill; quickReply: QuickReplyTaps | undefined }) {
+	const { quickReply } = props;
+
 	return (
 		<div className="template__buttons">
 			{props.buttons.map((button, index) => {
@@ -245,7 +265,29 @@ function SentButtons(props: { buttons: unknown[]; fill: TemplateFill }) {
 
 				switch (kind) {
 					case "QUICK_REPLY": {
-						return <ButtonRow key={key} icon="↩" label={text ?? "reply"} />;
+						if (quickReply === undefined || text === null) {
+							return <ButtonRow key={key} icon="↩" label={text ?? "reply"} />;
+						}
+
+						const payload = quickReplyPayload(parameters, text);
+
+						return (
+							<button
+								key={key}
+								type="button"
+								className="template__button interactive__tap"
+								title={payload}
+								disabled={quickReply.pending}
+								onClick={() => {
+									quickReply.tap({ payload, text });
+								}}
+							>
+								<span className="template__button-icon" aria-hidden="true">
+									↩
+								</span>
+								<span>{text}</span>
+							</button>
+						);
 					}
 
 					case "URL": {
@@ -294,6 +336,8 @@ export interface TemplateContentProps {
 	components: readonly JsonObject[];
 	/** What a send supplied; omitted, the definition renders with its placeholders marked. */
 	fill?: TemplateFill;
+	/** Makes a sent message's quick replies tappable; omitted, they render as labels. */
+	quickReply?: QuickReplyTaps;
 }
 
 export function TemplateContent(props: TemplateContentProps) {
@@ -337,7 +381,7 @@ export function TemplateContent(props: TemplateContentProps) {
 						return fill === undefined ? (
 							<DefinitionButtons key={key} buttons={buttons} />
 						) : (
-							<SentButtons key={key} buttons={buttons} fill={fill} />
+							<SentButtons key={key} buttons={buttons} fill={fill} quickReply={props.quickReply} />
 						);
 					}
 
