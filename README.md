@@ -243,6 +243,7 @@ webhooks rather than failing), and values are trimmed.
 | `WHALOC_VERIFY_ON_START`       | `false`                                              | Run that handshake at boot                                                                          |
 | `WHALOC_APP_ID`                | _derived from the name, stable across restarts_      | The app ID `subscribed_apps` reports — set it to the app's `META_APP_ID` when that matters          |
 | `WHALOC_SEED`                  | 1 WABA + 1 phone number + 2 contacts + 1 template    | JSON array of WABAs (see [SPEC §7](docs/SPEC.md)); omitted IDs are derived deterministically        |
+| `WHALOC_SEED_FILE`             | _unset_                                              | Path to a file with the `WHALOC_SEED` JSON, for long seeds; setting both is refused                 |
 | `WHALOC_STATUS_DELAYS`         | `sent:0,delivered:800`                               | Status ladder timing in ms; add `read:<ms>` to automate read receipts                               |
 | `WHALOC_TEMPLATE_AUTO_APPROVE` | `2000`                                               | ms until a new template is approved; `off` leaves it `PENDING` for the UI                           |
 | `WHALOC_TOKENS`                | _unset → any non-empty bearer token is accepted_     | Comma-separated bearer-token registry; set it and only these tokens pass (see **Error simulation**) |

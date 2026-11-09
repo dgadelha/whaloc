@@ -10,7 +10,13 @@ export {
 	type S3Config,
 	type StatusDelays,
 } from "./app-config.ts";
-export { collectConfigWarnings, describeConfig, parseConfig, type ParseConfigResult } from "./parse-config.ts";
+export {
+	collectConfigWarnings,
+	describeConfig,
+	parseConfig,
+	type ParseConfigResult,
+	type ReadTextFile,
+} from "./parse-config.ts";
 export {
 	DEFAULT_SEED,
 	QUALITY_RATINGS,

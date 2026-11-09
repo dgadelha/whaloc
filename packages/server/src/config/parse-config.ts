@@ -2,8 +2,13 @@ import type { z } from "zod";
 import { appConfigSchema, type AppConfig } from "./app-config.ts";
 
 const ENV_PREFIX = "WHALOC_";
+const SEED_KEY = "WHALOC_SEED";
+const SEED_FILE_KEY = "WHALOC_SEED_FILE";
 
 export type ParseConfigResult = { success: true; config: AppConfig } | { success: false; errors: string[] };
+
+/** Reads a whole file as UTF-8. Injected, so parsing the configuration never touches the disk itself. */
+export type ReadTextFile = (filePath: string) => string;
 
 /**
  * Keeps only whaloc's own variables and treats blank ones as unset, so an empty
@@ -28,9 +33,56 @@ function normalizeEnv(env: NodeJS.ProcessEnv): Record<string, string> {
 	return normalized;
 }
 
-function formatIssues(error: z.ZodError): string[] {
+/**
+ * `WHALOC_SEED_FILE` names a file that holds the seed JSON, for seeds too long to keep inline
+ * in a compose file. It stands in for `WHALOC_SEED`, so setting both is ambiguous and refused
+ * rather than silently preferring one. An empty file is refused too: falling back to the
+ * default seed would hide a broken mount behind a world that merely looks wrong.
+ */
+function resolveSeedFile(env: Record<string, string>, readTextFile: ReadTextFile | undefined): string[] {
+	const seedFile = env[SEED_FILE_KEY];
+
+	if (seedFile === undefined) {
+		return [];
+	}
+
+	if (env[SEED_KEY] !== undefined) {
+		return [`${SEED_KEY} and ${SEED_FILE_KEY} are both set: use only one of them`];
+	}
+
+	if (readTextFile === undefined) {
+		return [`${SEED_FILE_KEY}: reading files is not available here`];
+	}
+
+	let contents: string;
+
+	try {
+		contents = readTextFile(seedFile).trim();
+	} catch (error) {
+		const reason = Error.isError(error) ? error.message : String(error);
+
+		return [`${SEED_FILE_KEY}: cannot read ${seedFile}: ${reason}`];
+	}
+
+	if (contents === "") {
+		return [`${SEED_FILE_KEY}: ${seedFile} is empty`];
+	}
+
+	env[SEED_KEY] = contents;
+
+	return [];
+}
+
+/** `isSeedFromFile` names the variable the operator actually set in seed errors. */
+function formatIssues(error: z.ZodError, isSeedFromFile: boolean): string[] {
 	return error.issues.map(issue => {
-		const path = issue.path.map(String).join(".");
+		const segments = issue.path.map(String);
+
+		if (isSeedFromFile && segments[0] === SEED_KEY) {
+			segments[0] = SEED_FILE_KEY;
+		}
+
+		const path = segments.join(".");
 
 		return path === "" ? issue.message : `${path}: ${issue.message}`;
 	});
@@ -38,14 +90,17 @@ function formatIssues(error: z.ZodError): string[] {
 
 /**
  * Parses the environment once at boot. Never throws: the caller decides how to report the
- * (complete) list of problems and how to exit.
+ * (complete) list of problems and how to exit. `readTextFile` is only needed for the variables
+ * that point at a file (`WHALOC_SEED_FILE`).
  */
-export function parseConfig(env: NodeJS.ProcessEnv): ParseConfigResult {
-	const result = appConfigSchema.safeParse(normalizeEnv(env));
+export function parseConfig(env: NodeJS.ProcessEnv, readTextFile?: ReadTextFile): ParseConfigResult {
+	const normalized = normalizeEnv(env);
+	const fileErrors = resolveSeedFile(normalized, readTextFile);
+	const isSeedFromFile = normalized[SEED_FILE_KEY] !== undefined && fileErrors.length === 0;
+	const result = appConfigSchema.safeParse(normalized);
+	const errors = [...fileErrors, ...(result.success ? [] : formatIssues(result.error, isSeedFromFile))];
 
-	return result.success
-		? { success: true, config: result.data }
-		: { success: false, errors: formatIssues(result.error) };
+	return result.success && errors.length === 0 ? { success: true, config: result.data } : { success: false, errors };
 }
 
 /**

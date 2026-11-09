@@ -411,6 +411,82 @@ describe("parseConfig", () => {
 
 			expect(errors).toEqual(["WHALOC_SEED.0.id: must be a string of 1-32 digits"]);
 		});
+
+		describe("from a file (WHALOC_SEED_FILE)", () => {
+			const seed = [{ id: "200000000000001", phoneNumbers: [{ displayPhoneNumber: "+1 555 000 0100" }] }];
+
+			/** An in-memory filesystem: config parsing must never touch the real one. */
+			function files(contents: Record<string, string>): (filePath: string) => string {
+				return filePath => {
+					const found = contents[filePath];
+
+					if (found === undefined) {
+						throw new Error(`ENOENT: no such file or directory, open '${filePath}'`);
+					}
+
+					return found;
+				};
+			}
+
+			it("reads the seed JSON from the named file", () => {
+				const result = parseConfig(
+					{ WHALOC_SEED_FILE: "/seed/whaloc.json" },
+					files({ "/seed/whaloc.json": `${JSON.stringify(seed, undefined, 2)}\n` }),
+				);
+
+				expect(result.success && result.config.seed[0]?.id).toBe("200000000000001");
+			});
+
+			it("refuses WHALOC_SEED and WHALOC_SEED_FILE together", () => {
+				const result = parseConfig(
+					{ WHALOC_SEED: JSON.stringify(seed), WHALOC_SEED_FILE: "/seed/whaloc.json" },
+					files({ "/seed/whaloc.json": JSON.stringify(seed) }),
+				);
+
+				expect(result).toEqual({
+					success: false,
+					errors: ["WHALOC_SEED and WHALOC_SEED_FILE are both set: use only one of them"],
+				});
+			});
+
+			it("names the file it cannot read", () => {
+				const result = parseConfig({ WHALOC_SEED_FILE: "/missing.json" }, files({}));
+
+				expect(result.success).toBe(false);
+				expect(!result.success && result.errors).toEqual([
+					"WHALOC_SEED_FILE: cannot read /missing.json: ENOENT: no such file or directory, open '/missing.json'",
+				]);
+			});
+
+			it("refuses an empty file instead of falling back to the default seed", () => {
+				const result = parseConfig({ WHALOC_SEED_FILE: "/empty.json" }, files({ "/empty.json": " \n" }));
+
+				expect(!result.success && result.errors).toEqual(["WHALOC_SEED_FILE: /empty.json is empty"]);
+			});
+
+			it("blames WHALOC_SEED_FILE for an invalid seed read from it", () => {
+				const notJson = parseConfig({ WHALOC_SEED_FILE: "/seed.json" }, files({ "/seed.json": "[{" }));
+				const invalid = parseConfig(
+					{ WHALOC_SEED_FILE: "/seed.json" },
+					files({ "/seed.json": JSON.stringify([{ id: "waba-1", phoneNumbers: [{ displayPhoneNumber: "1" }] }]) }),
+				);
+
+				expect(!notJson.success && notJson.errors).toEqual(["WHALOC_SEED_FILE: must be valid JSON"]);
+				expect(!invalid.success && invalid.errors).toEqual(["WHALOC_SEED_FILE.0.id: must be a string of 1-32 digits"]);
+			});
+
+			it("refuses the variable when no file reader is available", () => {
+				expect(errorsOf({ WHALOC_SEED_FILE: "/seed.json" })).toEqual([
+					"WHALOC_SEED_FILE: reading files is not available here",
+				]);
+			});
+
+			it("reports a file problem together with the rest of the environment's", () => {
+				const result = parseConfig({ WHALOC_SEED_FILE: "/missing.json", WHALOC_PORT: "eighty" }, files({}));
+
+				expect(!result.success && result.errors).toHaveLength(2);
+			});
+		});
 	});
 
 	describe("logging", () => {

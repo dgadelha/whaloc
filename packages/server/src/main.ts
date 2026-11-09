@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { serve } from "@hono/node-server";
 import { WebSocketServer } from "ws";
 import { createApp } from "./app.ts";
@@ -6,7 +7,7 @@ import { collectConfigWarnings, describeConfig, parseConfig } from "./config/ind
 import { registerShutdownHandlers } from "./graceful-shutdown.ts";
 import { createLogger } from "./logging/index.ts";
 
-const configResult = parseConfig(process.env);
+const configResult = parseConfig(process.env, filePath => readFileSync(filePath, "utf8"));
 
 if (!configResult.success) {
 	const details = configResult.errors.map(error => `  - ${error}`).join("\n");
