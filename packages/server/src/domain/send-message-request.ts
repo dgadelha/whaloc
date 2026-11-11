@@ -87,8 +87,8 @@ const baseSchema = z.object({
 	to: z.string().min(1).optional(),
 	recipient: z.string().min(1).optional(),
 	/**
-	 * `null` reads as "not a reply": Chatwoot sends `"context": null` on every message that is
-	 * not one, and Meta accepts it (SPEC §2.5).
+	 * `null` means "not a reply", as on Meta: clients that serialize every field send
+	 * `"context": null` (SPEC §2.5).
 	 */
 	context: z.object({ message_id: z.string().min(1) }).nullish(),
 	/**
