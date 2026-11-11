@@ -347,7 +347,7 @@ The S3 side of the contract suite runs against **RustFS**: in CI as a service co
 
 ## 7. Configuration (environment variables only)
 
-Parsed once at boot with zod (fail fast, print every error). No config files.
+Parsed once at boot with zod (fail fast, print every error). Everything is an environment variable; only the seed can also come from a file (`WHALOC_SEED_FILE`).
 
 | Var | Default | Purpose |
 |---|---|---|
