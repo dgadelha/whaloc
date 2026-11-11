@@ -173,6 +173,19 @@ describe("POST /:phoneNumberId/messages (SPEC §2.5)", () => {
 			expect(stored?.replyTo).toBe("wamid.PARENT");
 		});
 
+		it("accepts a null context as a message that is not a reply", async () => {
+			const id = await sentMessageId(await sendText({ context: null }));
+			const stored = await fixture.services.repositories.messages.findById(id);
+
+			expect(stored?.replyTo).toBeNull();
+		});
+
+		it("still rejects a context without a message_id", async () => {
+			const response = await sendText({ context: {} });
+
+			expect(response.status).toBe(400);
+		});
+
 		it("auto-creates an unknown contact with the MSISDN as its profile name (SPEC §2)", async () => {
 			expect(await fixture.services.repositories.contacts.findByWaId("5511999999999")).toBeNull();
 

@@ -86,7 +86,11 @@ const baseSchema = z.object({
 	/** MSISDN (SPEC §1.15); `recipient` is the business-scoped alternative. */
 	to: z.string().min(1).optional(),
 	recipient: z.string().min(1).optional(),
-	context: z.object({ message_id: z.string().min(1) }).optional(),
+	/**
+	 * `null` means "not a reply", as on Meta: clients that serialize every field send
+	 * `"context": null` (SPEC §2.5).
+	 */
+	context: z.object({ message_id: z.string().min(1) }).nullish(),
 	/**
 	 * An arbitrary string the app under test attaches to a send and gets back on **every** status
 	 * webhook for it (SPEC §2.5). whaloc stores it verbatim and never interprets it; Meta caps it
