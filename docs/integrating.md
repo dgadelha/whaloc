@@ -92,7 +92,7 @@ downloaders. A shared env anchor (`x-base-env: &base-env`) is the least error-pr
 | `WHALOC_WEBHOOK_URL`          | the receiver's service name + port + route      | e.g. `http://app:3001/meta-webhooks` — from inside the compose network, not `localhost`                                                                                                                       |
 | `WHALOC_PUBLIC_URL`           | whatever fetches media                          | It is the host in every media descriptor URL; if a worker downloads media, that URL must resolve for the worker                                                                                                |
 | `GRAPH_API_BASE_URL`          | —                                               | Must be whaloc's URL **with a version segment** (§2)                                                                                                                                                          |
-| `WHALOC_APP_ID`               | the app's Meta **app ID**                       | Only cosmetic: it is the app ID `GET /{waba}/subscribed_apps` reports back. Setting them to the same value makes that round trip read like production; left unset, whaloc derives a stable ID instead          |
+| `WHALOC_APP_ID`               | the app's Meta **app ID**                       | It is the app ID `GET /{waba}/subscribed_apps` reports back, and the only one Embedded Signup (`/sdk.js`, `oauth/access_token`, `debug_token`) accepts; left unset, whaloc derives a stable ID instead |
 
 The **access token is irrelevant**: whaloc accepts any non-empty bearer token and never looks at
 its contents, so whatever your app stores, encrypts and sends is fine. Set `WHALOC_TOKENS` if you

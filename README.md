@@ -23,6 +23,9 @@ What is in the box:
   `header_handle`s, templates with Meta's filters and cursors, phone-number management, the
   business profile, `subscribed_apps` — answering with Meta's exact envelopes, `fbtrace_id` and
   error codes.
+- **Embedded Signup, browser included.** A JavaScript SDK stand-in at `/sdk.js` whose `FB.login`
+  opens a dialog where you pick or create the WABA and number, then `oauth/access_token` and
+  `debug_token` for the backend half.
 - **Signed webhooks, and the log to prove it.** Inbound messages, statuses, template and quality
   events, all `X-Hub-Signature-256`-signed over the exact bytes sent. Every attempt is stored,
   inspectable and redeliverable.
@@ -232,33 +235,33 @@ Environment variables only, parsed once at boot: an invalid environment prints *
 and exits. Blank values count as unset (an empty `WHALOC_WEBHOOK_URL=` in a compose file disables
 webhooks rather than failing), and values are trimmed.
 
-| Var                            | Default                                              | Purpose                                                                                             |
-| ------------------------------ | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `WHALOC_PORT`                  | `8080`                                               | Listen port (the `HEALTHCHECK` follows it)                                                          |
-| `WHALOC_HOST`                  | `0.0.0.0`                                            | Bind address                                                                                        |
-| `WHALOC_PUBLIC_URL`            | `http://localhost:8080`                              | Base for generated media URLs and `paging.next` — must be reachable **by whoever downloads media**  |
-| `WHALOC_WEBHOOK_URL`           | _unset → webhooks disabled (warns)_                  | Target for webhook POSTs, e.g. `http://meta-webhook-receiver:3001/meta-webhooks`                    |
-| `WHALOC_APP_SECRET`            | _unset → deliveries unsigned (warns)_                | HMAC key for `X-Hub-Signature-256`                                                                  |
-| `WHALOC_WEBHOOK_VERIFY_TOKEN`  | _unset_                                              | Token echoed in the `hub.challenge` handshake                                                       |
-| `WHALOC_VERIFY_ON_START`       | `false`                                              | Run that handshake at boot                                                                          |
-| `WHALOC_APP_ID`                | _derived from the name, stable across restarts_      | The app ID `subscribed_apps` reports — set it to the app's `META_APP_ID` when that matters          |
-| `WHALOC_SEED`                  | 1 WABA + 1 phone number + 2 contacts + 1 template    | JSON array of WABAs (see [SPEC §7](docs/SPEC.md)); omitted IDs are derived deterministically        |
-| `WHALOC_SEED_FILE`             | _unset_                                              | Path to a file with the `WHALOC_SEED` JSON, for long seeds; setting both is refused                 |
-| `WHALOC_STATUS_DELAYS`         | `sent:0,delivered:800`                               | Status ladder timing in ms; add `read:<ms>` to automate read receipts                               |
-| `WHALOC_TEMPLATE_AUTO_APPROVE` | `2000`                                               | ms until a new template is approved; `off` leaves it `PENDING` for the UI                           |
-| `WHALOC_TOKENS`                | _unset → any non-empty bearer token is accepted_     | Comma-separated bearer-token registry; set it and only these tokens pass (see **Error simulation**) |
-| `WHALOC_MEDIA_TTL_SECONDS`     | _unset → media never expires_                        | Seconds after which an uploaded media object is gone from the Graph surface                         |
-| `WHALOC_DB_PATH`               | `:memory:`                                           | SQLite file for persistence, e.g. `/data/whaloc.db`                                                 |
-| `WHALOC_MEDIA_BACKEND`         | `local`                                              | `local` (a directory) or `s3` (an S3-compatible bucket, see **Media storage**)                      |
-| `WHALOC_MEDIA_DIR`             | `/data/media` in the image, `./data/media` otherwise | Media storage root, for the `local` backend                                                         |
-| `WHALOC_S3_BUCKET`             | _required when the backend is `s3`_                  | Bucket the media objects live in — whaloc never creates it                                          |
-| `WHALOC_S3_REGION`             | _required when the backend is `s3`_                  | Region; anything satisfies RustFS, but the SDK insists on having one                                |
-| `WHALOC_S3_ENDPOINT`           | _unset → AWS S3_                                     | Endpoint of an S3-compatible server (RustFS, R2, Ceph…)                                             |
-| `WHALOC_S3_ACCESS_KEY_ID`      | _unset → the SDK's default credential chain_         | Access key; all-or-nothing with the secret below                                                    |
-| `WHALOC_S3_SECRET_ACCESS_KEY`  | _unset → the SDK's default credential chain_         | Secret key                                                                                          |
-| `WHALOC_S3_FORCE_PATH_STYLE`   | `true` whenever an endpoint is set                   | Path-style addressing (`<endpoint>/<bucket>/<key>`), which is what RustFS serves                    |
-| `WHALOC_WEB_DIR`               | `packages/web/dist`, beside the server               | Built UI served at `/`; an absent directory just leaves `/` unrouted                                |
-| `WHALOC_LOG_LEVEL`             | `info`                                               | pino level (`fatal`…`trace`, `silent`)                                                              |
+| Var                            | Default                                              | Purpose                                                                                              |
+| ------------------------------ | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `WHALOC_PORT`                  | `8080`                                               | Listen port (the `HEALTHCHECK` follows it)                                                           |
+| `WHALOC_HOST`                  | `0.0.0.0`                                            | Bind address                                                                                         |
+| `WHALOC_PUBLIC_URL`            | `http://localhost:8080`                              | Base for generated media URLs and `paging.next` — must be reachable **by whoever downloads media**   |
+| `WHALOC_WEBHOOK_URL`           | _unset → webhooks disabled (warns)_                  | Target for webhook POSTs, e.g. `http://meta-webhook-receiver:3001/meta-webhooks`                     |
+| `WHALOC_APP_SECRET`            | _unset → deliveries unsigned (warns)_                | HMAC key for `X-Hub-Signature-256`                                                                   |
+| `WHALOC_WEBHOOK_VERIFY_TOKEN`  | _unset_                                              | Token echoed in the `hub.challenge` handshake                                                        |
+| `WHALOC_VERIFY_ON_START`       | `false`                                              | Run that handshake at boot                                                                           |
+| `WHALOC_APP_ID`                | _derived from the name, stable across restarts_      | The app ID `subscribed_apps` reports and Embedded Signup accepts — set it to the app's `META_APP_ID` |
+| `WHALOC_SEED`                  | 1 WABA + 1 phone number + 2 contacts + 1 template    | JSON array of WABAs (see [SPEC §7](docs/SPEC.md)); omitted IDs are derived deterministically         |
+| `WHALOC_SEED_FILE`             | _unset_                                              | Path to a file with the `WHALOC_SEED` JSON, for long seeds; setting both is refused                  |
+| `WHALOC_STATUS_DELAYS`         | `sent:0,delivered:800`                               | Status ladder timing in ms; add `read:<ms>` to automate read receipts                                |
+| `WHALOC_TEMPLATE_AUTO_APPROVE` | `2000`                                               | ms until a new template is approved; `off` leaves it `PENDING` for the UI                            |
+| `WHALOC_TOKENS`                | _unset → any non-empty bearer token is accepted_     | Comma-separated bearer-token registry; set it and only these tokens pass (see **Error simulation**)  |
+| `WHALOC_MEDIA_TTL_SECONDS`     | _unset → media never expires_                        | Seconds after which an uploaded media object is gone from the Graph surface                          |
+| `WHALOC_DB_PATH`               | `:memory:`                                           | SQLite file for persistence, e.g. `/data/whaloc.db`                                                  |
+| `WHALOC_MEDIA_BACKEND`         | `local`                                              | `local` (a directory) or `s3` (an S3-compatible bucket, see **Media storage**)                       |
+| `WHALOC_MEDIA_DIR`             | `/data/media` in the image, `./data/media` otherwise | Media storage root, for the `local` backend                                                          |
+| `WHALOC_S3_BUCKET`             | _required when the backend is `s3`_                  | Bucket the media objects live in — whaloc never creates it                                           |
+| `WHALOC_S3_REGION`             | _required when the backend is `s3`_                  | Region; anything satisfies RustFS, but the SDK insists on having one                                 |
+| `WHALOC_S3_ENDPOINT`           | _unset → AWS S3_                                     | Endpoint of an S3-compatible server (RustFS, R2, Ceph…)                                              |
+| `WHALOC_S3_ACCESS_KEY_ID`      | _unset → the SDK's default credential chain_         | Access key; all-or-nothing with the secret below                                                     |
+| `WHALOC_S3_SECRET_ACCESS_KEY`  | _unset → the SDK's default credential chain_         | Secret key                                                                                           |
+| `WHALOC_S3_FORCE_PATH_STYLE`   | `true` whenever an endpoint is set                   | Path-style addressing (`<endpoint>/<bucket>/<key>`), which is what RustFS serves                     |
+| `WHALOC_WEB_DIR`               | `packages/web/dist`, beside the server               | Built UI served at `/`; an absent directory just leaves `/` unrouted                                 |
+| `WHALOC_LOG_LEVEL`             | `info`                                               | pino level (`fatal`…`trace`, `silent`)                                                               |
 
 ## Graph API coverage
 
@@ -291,6 +294,8 @@ consumers key media-expiry and deregistration detection on).
 | `POST /{phone-number-id}/deregister`                     | `DISCONNECTED`; sends answer `133010` until it is registered again                                                                                                                                                            |
 | `GET\|POST /{phone-number-id}/whatsapp_business_profile` | The profile a number publishes: `about`, `address`, `description`, `email`, `websites` (max 2), `vertical`, `profile_picture_url`. A `POST` merges, an empty value clears                                                     |
 | `POST\|GET\|DELETE /{waba-id}/subscribed_apps`           | Subscribe whaloc's own app to a WABA's webhooks, read it back, unsubscribe. One implicit app; delivery does not depend on it                                                                                                  |
+| `GET /oauth/access_token`                                | Exchanges an Embedded Signup `code` (single use, 30 s) for a business token granted the WABA picked in the dialog; needs `WHALOC_APP_ID` and `WHALOC_APP_SECRET` as `client_id`/`client_secret`                               |
+| `GET /debug_token`                                       | What that token was granted: `granular_scopes` with the WABA as `target_ids`; authenticated with the app token `{app-id}\|{app-secret}`                                                                                       |
 
 Template sends are validated against the stored components — a parameter-count mismatch is the
 real `132000`, a template that is not `APPROVED` (or does not exist) is `132001`.
