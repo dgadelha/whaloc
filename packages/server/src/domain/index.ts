@@ -19,6 +19,19 @@ export {
 export { BusinessProfileService, type BusinessProfileServiceOptions } from "./business-profile-service.ts";
 export { ContactService, type ContactServiceOptions } from "./contact-service.ts";
 export {
+	AUTHORIZATION_CODE_TTL_MS,
+	businessIdOf,
+	EmbeddedSignupService,
+	type EmbeddedSignupServiceOptions,
+	type ExchangeCodeInput,
+	type SignupChoice,
+	type SignupFinishEvent,
+	type SignupRequest,
+	type SignupResult,
+	type SignupSessionEvent,
+	type TokenDebugInfo,
+} from "./embedded-signup-service.ts";
+export {
 	toContactDto,
 	toConversationDto,
 	toInjectionRuleDto,
@@ -78,6 +91,8 @@ export {
 	createWamid,
 	createWebhookChallenge,
 	createWebhookDeliveryId,
+	createAuthorizationCode,
+	createSignupSessionId,
 	defaultRandomBytes,
 	deriveNumericId,
 	deriveVerificationCode,
@@ -125,6 +140,9 @@ export {
 	EXPIRED_ACCESS_TOKEN_SUBCODE,
 	formatSessionTime,
 	invalidAccessTokenError,
+	invalidApplicationIdError,
+	invalidAuthorizationCodeError,
+	invalidClientSecretError,
 	invalidParameterError,
 	invalidPhoneNumberError,
 	INVALID_PARAMETER_SUBCODE,
@@ -163,7 +181,12 @@ export {
 	type RequestCodeRequest,
 	type VerifyCodeRequest,
 } from "./phone-number-requests.ts";
-export { PhoneNumberService, type PhoneNumberServiceOptions } from "./phone-number-service.ts";
+export {
+	PhoneNumberService,
+	type OnboardPhoneNumberInput,
+	type PhoneNumberServiceOptions,
+} from "./phone-number-service.ts";
+export { SignupTokenIssuer, type SignupTokenIssuerOptions } from "./signup-tokens.ts";
 export {
 	isMarkReadBody,
 	markReadRequestSchema,

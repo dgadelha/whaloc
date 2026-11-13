@@ -14,6 +14,7 @@ export { createMediaDownloadRoutes, type MediaDownloadRoutesOptions } from "./me
 export { createMediaRoutes, type MediaRoutesOptions } from "./media-routes.ts";
 export { createMessageRoutes, type MessageRoutesOptions } from "./message-routes.ts";
 export { createGraphErrorHandler, toMetaErrorEnvelope, type MetaErrorEnvelope } from "./meta-error-envelope.ts";
+export { createOAuthRoutes, type OAuthRoutesOptions } from "./oauth-routes.ts";
 export { createObjectRoutes, templateNode, type ObjectRoutesOptions } from "./object-routes.ts";
 export { parseOrThrow, readJsonBody, zodIssueDetails } from "./request-parsing.ts";
 export { createSubscribedAppRoutes, type SubscribedAppRoutesOptions } from "./subscribed-app-routes.ts";

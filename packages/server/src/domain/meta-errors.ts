@@ -49,6 +49,35 @@ export function missingAccessTokenError(): GraphApiError {
 }
 
 /**
+ * `oauth/access_token` with a `client_id` that is not whaloc's app (SPEC §2.23). The wording and
+ * codes of the four exchange failures are the ones developers report from Meta; its reference
+ * documents none of them.
+ */
+export function invalidApplicationIdError(): GraphApiError {
+	return new GraphApiError("Error validating application. Invalid application ID.", { code: 101 });
+}
+
+/** `oauth/access_token` with the wrong `client_secret` (SPEC §2.23). */
+export function invalidClientSecretError(): GraphApiError {
+	return new GraphApiError("Error validating client secret.", { code: 1 });
+}
+
+/**
+ * An Embedded Signup `code` that cannot be exchanged (SPEC §2.23): never issued, past its 30
+ * seconds, or already exchanged. All three are code 100, which is what a consumer keys "ask the
+ * user to sign up again" on.
+ */
+export function invalidAuthorizationCodeError(reason: "unknown" | "expired" | "used"): GraphApiError {
+	const messages = {
+		unknown: "Invalid verification code format.",
+		expired: "This authorization code has expired.",
+		used: "This authorization code has been used.",
+	} as const;
+
+	return new GraphApiError(messages[reason], { code: 100 });
+}
+
+/**
  * A bearer token that is not in `WHALOC_TOKENS` (SPEC §1.9, strict mode).
  *
  * **The same envelope as a missing token, on purpose**: Meta does not tell a caller whether it

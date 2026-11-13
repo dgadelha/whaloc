@@ -97,6 +97,14 @@ function e164Digits(request: GraphPhoneNumberCreateRequest): string {
 	return cc === undefined || phoneNumber.startsWith(cc) ? phoneNumber : cc + phoneNumber;
 }
 
+export interface OnboardPhoneNumberInput {
+	wabaId: string;
+	/** As typed in the popup; only its digits are kept. */
+	phoneNumber: string;
+	verifiedName: string;
+	isOnBizApp: boolean;
+}
+
 export class PhoneNumberService {
 	readonly #repositories: Repositories;
 	readonly #webhooks: WebhookEmitter;
@@ -329,6 +337,43 @@ export class PhoneNumberService {
 		await this.#findOrThrow(phoneNumberId);
 
 		return this.#patch(phoneNumberId, { status: "DISCONNECTED" });
+	}
+
+	// --- Embedded Signup popup (SPEC §2.24) -----------------------------------------------------
+
+	/** Refuses digits that are malformed or already on a number, before anything is created. */
+	async assertCanOnboard(phoneNumber: string): Promise<string> {
+		const digits = phoneNumberDigits(phoneNumber);
+
+		if (!E164_PATTERN.test(digits)) {
+			throw controlBadRequest(`${phoneNumber} is not a phone number in E.164 format`, "invalid_phone_number");
+		}
+
+		await this.#assertDigitsAreFree(digits);
+
+		return digits;
+	}
+
+	/**
+	 * A number added in the Embedded Signup popup. Meta verifies it in the popup, so it starts
+	 * one rung below `CONNECTED` and the consumer's `register` finishes it. A coexistence number is
+	 * the exception: Meta says it is already registered and must not be registered again.
+	 */
+	async onboard(input: OnboardPhoneNumberInput): Promise<PhoneNumberRecord> {
+		const digits = await this.assertCanOnboard(input.phoneNumber);
+		const created = await this.#repositories.phoneNumbers.insert({
+			id: createPhoneNumberId(this.#random),
+			wabaId: input.wabaId,
+			displayPhoneNumber: formatDisplayPhoneNumber(digits),
+			verifiedName: input.verifiedName,
+			qualityRating: "UNKNOWN",
+			isOnBizApp: input.isOnBizApp,
+			...(!input.isOnBizApp && { status: "PENDING", nameStatus: "PENDING_REVIEW" }),
+		});
+
+		this.#announce(created, "created");
+
+		return created;
 	}
 
 	// --- Control plane (SPEC §5) ------------------------------------------------------------
