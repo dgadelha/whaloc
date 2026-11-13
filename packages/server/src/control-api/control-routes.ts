@@ -4,6 +4,7 @@ import type { Logger } from "../logging/index.ts";
 import { createContactRoutes } from "./contact-routes.ts";
 import { createControlErrorHandler, type ControlEnv } from "./control-env.ts";
 import { createConversationRoutes } from "./conversation-routes.ts";
+import { createEmbeddedSignupRoutes } from "./embedded-signup-routes.ts";
 import { createHealthRoutes } from "./health-routes.ts";
 import { createInboundRoutes } from "./inbound-routes.ts";
 import { createInjectionRoutes } from "./injection-routes.ts";
@@ -60,6 +61,7 @@ export function createControlRoutes(options: ControlRoutesOptions): Hono<Control
 		createPhoneNumberRoutes({ phoneNumbers: services.phoneNumbers, businessProfiles: services.businessProfiles }),
 	);
 	routes.route("/", createWabaRoutes({ wabas: services.wabas }));
+	routes.route("/", createEmbeddedSignupRoutes({ embeddedSignup: services.embeddedSignup }));
 	routes.route("/", createWsRoutes({ events: services.events, logger: options.logger }));
 
 	routes.onError(createControlErrorHandler());

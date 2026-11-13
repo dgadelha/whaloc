@@ -1,7 +1,7 @@
 import { runInNewContext } from "node:vm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createTestApp } from "../testing/test-app.ts";
-import { LOGIN_RESPONSE_TYPE } from "./sdk-script.ts";
+import { LOGIN_RESPONSE_TYPE } from "@whaloc/shared";
 
 /**
  * The SDK stand-in as a browser runs it (SPEC §2.24): the script `/sdk.js` serves is evaluated
@@ -130,5 +130,19 @@ describe("the SDK stand-in", () => {
 		await vi.runAllTimersAsync();
 
 		expect(callback.mock.calls).toEqual([[{ authResponse: null, status: "unknown" }]]);
+	});
+
+	it("ends a login still open when another starts, so one code reaches one callback", async () => {
+		const { sdk, popup, post } = await loadSdk();
+		const first = vi.fn<(response: LoginResponse) => void>();
+		const second = vi.fn<(response: LoginResponse) => void>();
+
+		sdk?.init({ appId: "4242", version: "v25.0" });
+		sdk?.login(first, {});
+		sdk?.login(second, {});
+		post({ origin: WHALOC_ORIGIN, source: popup, data: JSON.stringify({ type: LOGIN_RESPONSE_TYPE, code: "AQcode" }) });
+
+		expect(first.mock.calls).toEqual([[{ authResponse: null, status: "unknown" }]]);
+		expect(second.mock.calls).toEqual([[{ authResponse: { code: "AQcode" }, status: "connected" }]]);
 	});
 });

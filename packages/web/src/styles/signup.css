@@ -1,0 +1,99 @@
+/* The Embedded Signup popup: one card at a time, sized for the window `sdk.js` opens. */
+
+.signup {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+	width: min(560px, 100%);
+	margin: 0 auto;
+	padding: var(--sp-5) var(--sp-4);
+}
+
+.signup__steps {
+	display: flex;
+	gap: var(--sp-4);
+	margin: 0;
+	padding: 0;
+	color: var(--text-faint);
+	font-size: var(--fs-sm);
+	list-style: none;
+}
+
+.signup__step {
+	display: inline-flex;
+	gap: var(--sp-2);
+	align-items: center;
+}
+
+.signup__step.is-current {
+	color: var(--text);
+	font-weight: 600;
+}
+
+.signup__step-number {
+	display: inline-grid;
+	place-items: center;
+	width: 20px;
+	height: 20px;
+	border-radius: 999px;
+	background: var(--surface-3);
+	font-size: var(--fs-xs);
+}
+
+.signup__step.is-current .signup__step-number {
+	background: var(--accent);
+	color: var(--accent-text);
+}
+
+.signup__options {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+	margin: 0;
+	padding: 0;
+	border: none;
+}
+
+.signup__options legend {
+	margin-bottom: var(--sp-2);
+}
+
+.signup__option {
+	display: flex;
+	gap: var(--sp-3);
+	align-items: flex-start;
+	padding: var(--sp-2) var(--sp-3);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	cursor: pointer;
+}
+
+.signup__option:hover {
+	background: var(--surface-2);
+}
+
+.signup__option.is-selected {
+	border-color: var(--accent);
+	background: var(--accent-soft);
+}
+
+.signup__option-text {
+	gap: 2px;
+}
+
+/* The fields a "new" option needs, under the option that asked for them. */
+.signup__nested {
+	margin-left: var(--sp-5);
+}
+
+.signup__exit summary {
+	cursor: pointer;
+}
+
+.signup__exit[open] summary {
+	margin-bottom: var(--sp-3);
+}
+
+.signup__exit-row {
+	align-items: flex-end;
+}

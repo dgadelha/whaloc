@@ -14,6 +14,9 @@ import {
 	messageResponseSchema,
 	phoneNumberResponseSchema,
 	resetResponseSchema,
+	signupChoicesResponseSchema,
+	signupCompleteResponseSchema,
+	signupErrorSessionResponseSchema,
 	stateResponseSchema,
 	templateListResponseSchema,
 	templateResponseSchema,
@@ -50,6 +53,10 @@ import {
 	type PhoneNumberUpdateRequest,
 	type QualityRating,
 	type RejectTemplateRequest,
+	type SignupChoice,
+	type SignupCompleteRequest,
+	type SignupErrorSession,
+	type SignupResult,
 	type StateResponse,
 	type Template,
 	type TokenListResponse,
@@ -355,6 +362,33 @@ export const api = {
 		const { data } = await request(`/api/wabas/${encodeURIComponent(id)}`, {
 			method: "DELETE",
 			schema: wabaResponseSchema,
+		});
+
+		return data;
+	},
+
+	async signupChoices(appId: string, options: Signal = {}): Promise<SignupChoice[]> {
+		const { data } = await request(`/api/embedded-signup/choices${queryString({ app_id: appId })}`, {
+			schema: signupChoicesResponseSchema,
+			...options,
+		});
+
+		return data;
+	},
+
+	async completeSignup(body: SignupCompleteRequest): Promise<SignupResult> {
+		const { data } = await request("/api/embedded-signup/complete", {
+			method: "POST",
+			body,
+			schema: signupCompleteResponseSchema,
+		});
+
+		return data;
+	},
+
+	async signupErrorSession(appId: string): Promise<SignupErrorSession> {
+		const { data } = await request(`/api/embedded-signup/error-session${queryString({ app_id: appId })}`, {
+			schema: signupErrorSessionResponseSchema,
 		});
 
 		return data;

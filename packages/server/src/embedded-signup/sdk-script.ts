@@ -1,5 +1,4 @@
-/** Session-logging messages the dialog posts that are whaloc's own, never Meta's. */
-export const LOGIN_RESPONSE_TYPE = "WHALOC_LOGIN_RESPONSE";
+import { LOGIN_RESPONSE_TYPE } from "@whaloc/shared";
 
 /** The dialog the SDK opens, relative to wherever `sdk.js` was loaded from. */
 export const DIALOG_PATH = "dialog/embedded-signup";
@@ -25,12 +24,17 @@ export const SDK_SCRIPT = `(function () {
 	var dialogUrl = new URL(${JSON.stringify(DIALOG_PATH)}, script && script.src ? script.src : location.href);
 	var appId = null;
 	var version = null;
+	// Every login reuses the one named popup, so a second login ends the first: otherwise both
+	// listeners would answer to the same dialog and both callbacks would get its single-use code.
+	var endPrevious = null;
 
 	function login(callback, options) {
 		if (appId === null) {
 			console.error("FB.login() called before FB.init().");
 			return;
 		}
+
+		if (endPrevious !== null) endPrevious();
 
 		var settings = options || {};
 		var url = new URL(dialogUrl.href);
@@ -47,6 +51,7 @@ export const SDK_SCRIPT = `(function () {
 		function finish(response) {
 			if (done) return;
 			done = true;
+			if (endPrevious === cancel) endPrevious = null;
 			window.removeEventListener("message", onMessage);
 			if (poll !== null) clearInterval(poll);
 			if (typeof callback === "function") callback(response);
@@ -65,11 +70,16 @@ export const SDK_SCRIPT = `(function () {
 			}
 		}
 
-		if (!popup) {
+		function cancel() {
 			finish({ authResponse: null, status: "unknown" });
+		}
+
+		if (!popup) {
+			cancel();
 			return;
 		}
 
+		endPrevious = cancel;
 		window.addEventListener("message", onMessage);
 		poll = setInterval(function () {
 			if (popup.closed) {

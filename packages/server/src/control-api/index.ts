@@ -11,6 +11,7 @@ export {
 } from "./control-env.ts";
 export { createControlRoutes, type ControlRoutesOptions } from "./control-routes.ts";
 export { createConversationRoutes, type ConversationRoutesOptions } from "./conversation-routes.ts";
+export { createEmbeddedSignupRoutes, type EmbeddedSignupRoutesOptions } from "./embedded-signup-routes.ts";
 export { createHealthRoutes } from "./health-routes.ts";
 export { createInboundRoutes, type InboundRoutesOptions } from "./inbound-routes.ts";
 export { createInjectionRoutes, type InjectionRoutesOptions } from "./injection-routes.ts";

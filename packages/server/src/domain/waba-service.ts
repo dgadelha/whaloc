@@ -49,15 +49,25 @@ export class WabaService {
 
 	/** `POST /api/wabas`. An explicit id is honored so a fixed configuration can be reproduced. */
 	async create(input: WabaCreateRequest): Promise<WabaRecord> {
-		const id = input.id ?? createWabaId(this.#random);
+		const created = await this.insert(input, this.#repositories);
 
-		await assertIdIsFree(this.#repositories, id, "duplicate_waba");
-
-		const created = await this.#repositories.wabas.insert({ id, name: input.name });
-
-		this.#announce(created, "created");
+		this.announceCreated(created);
 
 		return created;
+	}
+
+	/** {@link create} without the announcement, for a caller that inserts inside its own transaction. */
+	async insert(input: WabaCreateRequest, repositories: Repositories): Promise<WabaRecord> {
+		const id = input.id ?? createWabaId(this.#random);
+
+		await assertIdIsFree(repositories, id, "duplicate_waba");
+
+		return repositories.wabas.insert({ id, name: input.name });
+	}
+
+	/** Announces a WABA {@link insert} created, once its transaction has committed. */
+	announceCreated(waba: WabaRecord): void {
+		this.#announce(waba, "created");
 	}
 
 	/** `PATCH /api/wabas/:id`. */

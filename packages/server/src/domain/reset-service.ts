@@ -9,6 +9,7 @@ import { deleteStoredMedia } from "./media-cleanup.ts";
 import type { StateService } from "./state-service.ts";
 import type { StatusLadder } from "./status-ladder.ts";
 import type { TemplateLifecycle } from "./template-lifecycle.ts";
+import type { EmbeddedSignupService } from "./embedded-signup-service.ts";
 import type { TypingService } from "./typing-service.ts";
 
 /**
@@ -36,6 +37,8 @@ export interface ResetServiceOptions {
 	statusLadder: StatusLadder;
 	templateLifecycle: TemplateLifecycle;
 	typing: TypingService;
+	/** Its pending codes grant WABAs the wipe removes, so they go too (SPEC §2.23). */
+	embeddedSignup: EmbeddedSignupService;
 	events?: EventPublisher;
 }
 
@@ -53,6 +56,7 @@ export class ResetService {
 	readonly #statusLadder: StatusLadder;
 	readonly #templateLifecycle: TemplateLifecycle;
 	readonly #typing: TypingService;
+	readonly #embeddedSignup: EmbeddedSignupService;
 	readonly #events: EventPublisher;
 
 	constructor(options: ResetServiceOptions) {
@@ -64,6 +68,7 @@ export class ResetService {
 		this.#statusLadder = options.statusLadder;
 		this.#templateLifecycle = options.templateLifecycle;
 		this.#typing = options.typing;
+		this.#embeddedSignup = options.embeddedSignup;
 		this.#events = options.events ?? noopEventPublisher;
 	}
 
@@ -93,6 +98,7 @@ export class ResetService {
 		// A typing indicator describes a conversation that is about to stop existing; the
 		// `state.reset` event below is what tells the UI to forget it.
 		this.#typing.clearAll();
+		this.#embeddedSignup.clearCodes();
 
 		await this.#deleteMediaObjects();
 		await deleteAllRows(this.#repositories);

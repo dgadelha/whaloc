@@ -1,29 +1,28 @@
+import type { SignupCompleteRequest } from "@whaloc/shared";
 import { afterEach, describe, expect, it } from "vitest";
 import { AUTHORIZATION_CODE_TTL_MS, businessIdOf } from "../domain/index.ts";
 import { createRecordingScheduler, type RecordingScheduler } from "../testing/domain-harness.ts";
 import { readJson, statusOf, stringMatching } from "../testing/expectations.ts";
 import { createTestApp, type TestApp } from "../testing/test-app.ts";
-import { RESULT_ELEMENT_ID } from "./dialog-page.ts";
-import { LOGIN_RESPONSE_TYPE } from "./sdk-script.ts";
 
 /**
  * Embedded Signup end to end (SPEC §2.23-§2.24), driven the way a page and its backend drive
- * Meta: the dialog's form produces the session event and the code, the backend exchanges the
- * code, asks `debug_token` what the token was granted, and onboards the numbers it lists.
+ * Meta: the dialog's choices, sent to its API, produce the session event and the code, the
+ * backend exchanges the code, asks `debug_token` what the token was granted, and onboards the numbers it lists.
  */
 
 const APP_ID = "4242424242";
 const APP_SECRET = "dev-app-secret";
 const APP_TOKEN = { authorization: `Bearer ${APP_ID}|${APP_SECRET}` };
-const PAGE_ORIGIN = "https://app.example.test";
-const RESULT_PATTERN = new RegExp(`<script type="application/json" id="${RESULT_ELEMENT_ID}">(.*?)</script>`, "s");
 
-interface PostedMessage {
+interface SessionEvent {
 	type: string;
-	event?: string;
-	data?: { waba_id?: string; phone_number_id?: string; business_id?: string };
-	code?: string;
+	event: string;
+	data: { waba_id?: string; phone_number_id?: string; business_id?: string };
 }
+
+type DialogChoice = Pick<SignupCompleteRequest, "waba" | "phoneNumber"> &
+	Partial<Pick<SignupCompleteRequest, "sessionInfoVersion">>;
 
 interface ErrorEnvelope {
 	error: { message: string; type: string; code: number };
@@ -49,23 +48,22 @@ describe("Embedded Signup", () => {
 		fixture = await createTestApp({ WHALOC_APP_ID: APP_ID, WHALOC_APP_SECRET: APP_SECRET, ...env }, { scheduler });
 	}
 
-	/** Submits the dialog's form and reads back what the finished dialog posts to the page. */
-	async function finishDialog(fields: Record<string, string>): Promise<{ event: PostedMessage; code: string }> {
-		const response = await fixture.app.request("/dialog/embedded-signup", {
+	function complete(choice: DialogChoice, appId = APP_ID) {
+		return fixture.app.request("/api/embedded-signup/complete", {
 			method: "POST",
-			body: new URLSearchParams({ app_id: APP_ID, origin: PAGE_ORIGIN, ...fields }),
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({ appId, sessionInfoVersion: "v4", ...choice }),
 		});
-		const html = await response.text();
-		const result = JSON.parse(RESULT_PATTERN.exec(html)?.[1] ?? "null") as {
-			origin: string;
-			messages: [PostedMessage, PostedMessage];
-		};
+	}
+
+	/** Finishes the dialog and reads back the event and the code it posts to the page. */
+	async function finishDialog(choice: DialogChoice): Promise<{ event: SessionEvent; code: string }> {
+		const response = await complete(choice);
+		const { data } = await readJson<{ data: { code: string; sessionEvent: SessionEvent } }>(response);
 
 		expect(response.status).toBe(200);
-		expect(result.origin).toBe(PAGE_ORIGIN);
-		expect(result.messages[1].type).toBe(LOGIN_RESPONSE_TYPE);
 
-		return { event: result.messages[0], code: result.messages[1].code ?? "" };
+		return { event: data.sessionEvent, code: data.code };
 	}
 
 	function exchange(code: string, overrides: Record<string, string> = {}) {
@@ -88,18 +86,15 @@ describe("Embedded Signup", () => {
 		await start();
 
 		const { event, code } = await finishDialog({
-			waba: "new",
-			waba_name: "Acme",
-			phone_number_choice: "new",
-			phone_number: "+1 631 555 0100",
-			verified_name: "Acme",
+			waba: { kind: "new", name: "Acme" },
+			phoneNumber: { kind: "new", phoneNumber: "+1 631 555 0100", verifiedName: "Acme", coexistence: false },
 		});
 		const exchanged = await exchange(code);
 		const { access_token: token, token_type: tokenType } = await readJson<{ access_token: string; token_type: string }>(
 			exchanged,
 		);
 		const reused = await exchange(code);
-		const wabaId = event.data?.waba_id ?? "";
+		const wabaId = event.data.waba_id ?? "";
 		const debug = await fixture.app.request(`/v25.0/debug_token?input_token=${token}`, { headers: APP_TOKEN });
 
 		expect(event).toEqual({
@@ -129,7 +124,7 @@ describe("Embedded Signup", () => {
 		});
 
 		// Verified in the dialog, so `register` alone takes it onto the Cloud API.
-		const phoneNumberId = event.data?.phone_number_id ?? "";
+		const phoneNumberId = event.data.phone_number_id ?? "";
 
 		expect(await phoneNumbersOf(wabaId, token)).toEqual([
 			{ id: phoneNumberId, status: "PENDING", platform_type: "NOT_APPLICABLE", is_on_biz_app: false },
@@ -151,14 +146,12 @@ describe("Embedded Signup", () => {
 		await start();
 
 		const { wabaId, phoneNumberId } = fixture;
-		const onlyWaba = await finishDialog({ waba: wabaId, phone_number_choice: "none" });
-		const existing = await finishDialog({ waba: wabaId, phone_number_choice: phoneNumberId });
+		const waba = { kind: "existing", id: wabaId } as const;
+		const onlyWaba = await finishDialog({ waba, phoneNumber: { kind: "none" } });
+		const existing = await finishDialog({ waba, phoneNumber: { kind: "existing", id: phoneNumberId } });
 		const coexistence = await finishDialog({
-			waba: wabaId,
-			phone_number_choice: "new",
-			phone_number: "5511912340000",
-			verified_name: "Coexisting",
-			coexistence: "on",
+			waba,
+			phoneNumber: { kind: "new", phoneNumber: "5511912340000", verifiedName: "Coexisting", coexistence: true },
 		});
 		const numbers = await phoneNumbersOf(wabaId, "any-token");
 
@@ -184,22 +177,131 @@ describe("Embedded Signup", () => {
 		]);
 	});
 
+	it("posts v5's event, the one fixed shape, to a page that asked for v5", async () => {
+		await start();
+
+		const { wabaId, phoneNumberId } = fixture;
+		const waba = { kind: "existing", id: wabaId } as const;
+		const sessionInfoVersion = "v5";
+		const onlyWaba = await finishDialog({ waba, phoneNumber: { kind: "none" }, sessionInfoVersion });
+		const existing = await finishDialog({
+			waba,
+			phoneNumber: { kind: "existing", id: phoneNumberId },
+			sessionInfoVersion,
+		});
+		const coexistence = await finishDialog({
+			waba,
+			phoneNumber: { kind: "new", phoneNumber: "5511912340000", verifiedName: "Coexisting", coexistence: true },
+			sessionInfoVersion,
+		});
+		const v5Data = (isOnBizApp: boolean) => {
+			return {
+				is_on_biz_app: isOnBizApp,
+				messaging_account_ids: [wabaId],
+				primary_waac_ids: [],
+				page_ids: [],
+				catalog_ids: [],
+				dataset_ids: [],
+				business_id: businessIdOf(wabaId),
+				instagram_account_ids: [],
+			};
+		};
+
+		expect(onlyWaba.event).toEqual({ type: "WA_EMBEDDED_SIGNUP", event: "FINISH", data: v5Data(false) });
+		expect(existing.event).toEqual({
+			type: "WA_EMBEDDED_SIGNUP",
+			event: "FINISH",
+			data: { phone_number_id: phoneNumberId, ...v5Data(false) },
+		});
+		expect(coexistence.event).toEqual({
+			type: "WA_EMBEDDED_SIGNUP",
+			event: "FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING",
+			data: { phone_number_id: stringMatching(/^\d+$/), ...v5Data(true) },
+		});
+	});
+
+	it("leaves no WABA behind when another signup claims the same new number first", async () => {
+		await start();
+
+		const claim = (name: string) => {
+			return complete({
+				waba: { kind: "new", name },
+				phoneNumber: { kind: "new", phoneNumber: "+1 631 555 0199", verifiedName: name, coexistence: false },
+			});
+		};
+		const responses = await Promise.all([claim("First"), claim("Second")]);
+		const wabas = await fixture.services.repositories.wabas.list();
+
+		expect(responses.map(response => response.status).toSorted((a, b) => a - b)).toEqual([200, 409]);
+		expect(wabas).toHaveLength(2);
+	});
+
+	it("forgets codes a minute after they expire, and every code on a reset", async () => {
+		await start();
+
+		const waba = { kind: "existing", id: fixture.wabaId } as const;
+		const expiring = await finishDialog({ waba, phoneNumber: { kind: "none" } });
+
+		scheduler.setNow(new Date(scheduler.now().getTime() + 2 * AUTHORIZATION_CODE_TTL_MS));
+
+		const forgotten = await readJson<ErrorEnvelope>(await exchange(expiring.code));
+		const beforeReset = await finishDialog({ waba, phoneNumber: { kind: "none" } });
+
+		await fixture.app.request("/api/reset", { method: "POST" });
+
+		const afterReset = await readJson<ErrorEnvelope>(await exchange(beforeReset.code));
+
+		expect(forgotten.error.message).toBe("Invalid verification code format.");
+		expect(afterReset.error.message).toBe("Invalid verification code format.");
+	});
+
+	it("reads the app secret after the first `|` of the app token, `|` included", async () => {
+		await start({ WHALOC_APP_SECRET: "dev|secret" });
+
+		const debug = await fixture.app.request("/v25.0/debug_token?input_token=x", {
+			headers: { authorization: `Bearer ${APP_ID}|dev|secret` },
+		});
+
+		expect(debug.status).toBe(200);
+	});
+
+	it("gives the dialog the WABAs to pick from and the session an ERROR event names", async () => {
+		await start();
+
+		const choices = await readJson<{ data: { waba: { id: string }; phoneNumbers: { id: string }[] }[] }>(
+			await fixture.app.request(`/api/embedded-signup/choices?app_id=${APP_ID}`),
+		);
+		const session = await readJson<{ data: { sessionId: string; timestamp: string } }>(
+			await fixture.app.request(`/api/embedded-signup/error-session?app_id=${APP_ID}`),
+		);
+
+		expect(choices.data.map(({ waba, phoneNumbers }) => [waba.id, phoneNumbers.map(({ id }) => id)])).toEqual([
+			[fixture.wabaId, [fixture.phoneNumberId]],
+		]);
+		// Meta documents the timestamp as Unix milliseconds in a string.
+		expect(session.data).toEqual({
+			sessionId: stringMatching(/^\S+$/),
+			timestamp: String(scheduler.now().getTime()),
+		});
+	});
+
 	it("refuses what Meta refuses, without touching state", async () => {
 		await start();
 
-		const unknownApp = await fixture.app.request(`/dialog/embedded-signup?app_id=1&origin=${PAGE_ORIGIN}`);
-		const foreignNumber = await fixture.app.request("/dialog/embedded-signup", {
-			method: "POST",
-			body: new URLSearchParams({
-				app_id: APP_ID,
-				origin: PAGE_ORIGIN,
-				waba: "new",
-				waba_name: "Should not exist",
-				phone_number_choice: fixture.phoneNumberId,
-			}),
+		const unknownApp = await Promise.all([
+			fixture.app.request("/api/embedded-signup/choices?app_id=1"),
+			fixture.app.request("/api/embedded-signup/error-session?app_id=1"),
+			complete({ waba: { kind: "new", name: "Should not exist" }, phoneNumber: { kind: "none" } }, "1"),
+		]);
+		const foreignNumber = await complete({
+			waba: { kind: "new", name: "Should not exist" },
+			phoneNumber: { kind: "existing", id: fixture.phoneNumberId },
 		});
 		const wabasAfter = await fixture.services.repositories.wabas.list();
-		const { code } = await finishDialog({ waba: fixture.wabaId, phone_number_choice: "none" });
+		const { code } = await finishDialog({
+			waba: { kind: "existing", id: fixture.wabaId },
+			phoneNumber: { kind: "none" },
+		});
 		const failures = await Promise.all(
 			[exchange(code, { client_id: "1" }), exchange(code, { client_secret: "wrong" }), exchange("AQnot-a-code")].map(
 				async request => readJson<ErrorEnvelope>(await request),
@@ -216,9 +318,21 @@ describe("Embedded Signup", () => {
 			`/v25.0/debug_token?input_token=x&access_token=${APP_ID}|wrong-secret`,
 		);
 
-		expect(unknownApp.status).toBe(400);
+		// The dialog shows this message, as Meta's refuses an app it does not know.
+		const refusal = [400, { error: { message: "App ID 1 is not this whaloc's app.", code: "unknown_app" } }];
+
+		expect(await Promise.all(unknownApp.map(async response => [response.status, await response.json()]))).toEqual([
+			refusal,
+			refusal,
+			refusal,
+		]);
 		expect(foreignNumber.status).toBe(400);
-		expect(await foreignNumber.text()).toContain("does not belong to the chosen WABA");
+		expect(await readJson<{ error: { message: string } }>(foreignNumber)).toEqual({
+			error: {
+				message: `phone number ${fixture.phoneNumberId} does not belong to the chosen WABA`,
+				code: "phone_number_not_in_waba",
+			},
+		});
 		expect(wabasAfter.map(waba => waba.id)).toEqual([fixture.wabaId]);
 		expect(failures.map(({ error }) => [error.code, error.message])).toEqual([
 			[101, "Error validating application. Invalid application ID."],
@@ -239,7 +353,10 @@ describe("Embedded Signup", () => {
 	it("lets an issued token through the strict gate, and nothing that merely looks like one", async () => {
 		await start({ WHALOC_TOKENS: "registered-token" });
 
-		const { code } = await finishDialog({ waba: fixture.wabaId, phone_number_choice: "none" });
+		const { code } = await finishDialog({
+			waba: { kind: "existing", id: fixture.wabaId },
+			phoneNumber: { kind: "none" },
+		});
 		const { access_token: token } = await readJson<{ access_token: string }>(await exchange(code));
 		const tampered = `${token.slice(0, -2)}AA`;
 		const statusFor = (bearer: string) => {

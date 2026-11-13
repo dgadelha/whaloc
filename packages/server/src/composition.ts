@@ -200,6 +200,15 @@ export function createDomainServices(options: CreateDomainServicesOptions): Doma
 	});
 	const wabas = new WabaService({ repositories, phoneNumbers, events });
 	const signupTokens = new SignupTokenIssuer({ appId: subscribedApps.identity.id, appSecret: config.appSecret });
+	const embeddedSignup = new EmbeddedSignupService({
+		repositories,
+		wabas,
+		phoneNumbers,
+		signupTokens,
+		appId: subscribedApps.identity.id,
+		appSecret: config.appSecret,
+		...(scheduler !== undefined && { scheduler }),
+	});
 
 	return {
 		objects: new ObjectService({ repositories }),
@@ -216,15 +225,7 @@ export function createDomainServices(options: CreateDomainServicesOptions): Doma
 		templates: new TemplateService({ repositories, events: templateLifecycle, uploads }),
 		businessProfiles: new BusinessProfileService({ repositories, media, uploads, events }),
 		subscribedApps,
-		embeddedSignup: new EmbeddedSignupService({
-			repositories,
-			wabas,
-			phoneNumbers,
-			signupTokens,
-			appId: subscribedApps.identity.id,
-			appSecret: config.appSecret,
-			...(scheduler !== undefined && { scheduler }),
-		}),
+		embeddedSignup,
 		webhooks,
 		statusLadder,
 		templateLifecycle,
@@ -272,6 +273,7 @@ export function createDomainServices(options: CreateDomainServicesOptions): Doma
 			statusLadder,
 			templateLifecycle,
 			typing,
+			embeddedSignup,
 			events,
 		}),
 		// An import replaces everything a reset would wipe, so it cancels the same timers —
@@ -284,6 +286,7 @@ export function createDomainServices(options: CreateDomainServicesOptions): Doma
 			statusLadder,
 			templateLifecycle,
 			typing,
+			embeddedSignup,
 			events,
 			...(scheduler !== undefined && { scheduler }),
 		}),
