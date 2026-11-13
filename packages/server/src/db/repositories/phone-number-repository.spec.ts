@@ -54,6 +54,7 @@ describe("PhoneNumberRepository", () => {
 			pendingVerification: null,
 			// A number publishes no business profile until one is posted (SPEC §2.19).
 			businessProfile: {},
+			isOnBizApp: false,
 			createdAt: "2026-01-01T00:00:00.000Z",
 		});
 	});

@@ -32,6 +32,8 @@ export interface PhoneNumberRecord {
 	pendingVerification: PendingVerificationRecord | null;
 	/** The business profile this number publishes (SPEC §2.19); `{}` when it has none. */
 	businessProfile: BusinessProfile;
+	/** Also on the WhatsApp Business app (coexistence, SPEC §2.1). */
+	isOnBizApp: boolean;
 	createdAt: string;
 }
 
@@ -49,6 +51,7 @@ export interface InsertPhoneNumberInput {
 	status?: PhoneNumberStatus;
 	codeVerificationStatus?: CodeVerificationStatus;
 	nameStatus?: NameStatus;
+	isOnBizApp?: boolean;
 	createdAt?: string;
 }
 
@@ -97,6 +100,7 @@ function toRecord(row: PhoneNumberTable): PhoneNumberRecord {
 		nameStatus: row.name_status,
 		pendingVerification: toPendingVerification(row),
 		businessProfile: decodeJsonColumn(businessProfileSchema, row.business_profile, "phone_numbers.business_profile"),
+		isOnBizApp: row.is_on_biz_app === 1,
 		createdAt: row.created_at,
 	};
 }
@@ -134,6 +138,7 @@ export class PhoneNumberRepository {
 				...verificationColumns(null),
 				// A new number publishes nothing until somebody posts a profile (SPEC §2.19).
 				business_profile: encodeJsonColumn({}),
+				is_on_biz_app: input.isOnBizApp === true ? 1 : 0,
 				created_at: input.createdAt ?? nowIso(),
 			})
 			.returningAll()
