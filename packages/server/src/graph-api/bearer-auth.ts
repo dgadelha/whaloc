@@ -13,6 +13,10 @@ export interface BearerAuthOptions {
 /**
  * The bearer gate on the Graph surface (SPEC §1.9).
  *
+ * The token travels as `Authorization: Bearer …` or, like on Graph, as an `access_token` query
+ * parameter, which some clients use exclusively. A header that is present always wins, so a
+ * malformed one is not rescued by the query.
+ *
  * Missing, empty or non-bearer credentials are always the 401 / code 190 envelope. What happens
  * to a token that *is* there depends on whether `WHALOC_TOKENS` was configured, and the whole of
  * that decision lives in {@link TokenRegistry}:
@@ -28,13 +32,16 @@ export interface BearerAuthOptions {
 export function createBearerAuth(options: BearerAuthOptions): MiddlewareHandler<GraphEnv> {
 	return async (c, next) => {
 		const authorization = c.req.header("authorization")?.trim() ?? "";
-		const bearer = BEARER_PATTERN.exec(authorization);
+		const token =
+			authorization === ""
+				? (c.req.query("access_token")?.trim() ?? "")
+				: (BEARER_PATTERN.exec(authorization)?.[1]?.trim() ?? "");
 
-		if (bearer === null) {
+		if (token === "") {
 			throw missingAccessTokenError();
 		}
 
-		await options.tokens.authenticate(bearer[1]!.trim());
+		await options.tokens.authenticate(token);
 
 		await next();
 	};
