@@ -95,8 +95,11 @@ downloaders. A shared env anchor (`x-base-env: &base-env`) is the least error-pr
 | `WHALOC_APP_ID`               | the app's Meta **app ID**                       | Only cosmetic: it is the app ID `GET /{waba}/subscribed_apps` reports back. Setting them to the same value makes that round trip read like production; left unset, whaloc derives a stable ID instead          |
 
 The **access token is irrelevant**: whaloc accepts any non-empty bearer token and never looks at
-its contents, so whatever your app stores, encrypts and sends is fine. Set `WHALOC_TOKENS` if you
-_want_ tokens to be checked — see "Error simulation" in the [README](../README.md).
+its contents, so whatever your app stores, encrypts and sends is fine. Like Graph, it takes the
+token either as `Authorization: Bearer …` or as an `access_token` query parameter, so clients
+that only use the query form (some validate credentials that way) work unchanged. Set
+`WHALOC_TOKENS` if you _want_ tokens to be checked — see "Error simulation" in the
+[README](../README.md).
 
 ## The three surfaces
 
