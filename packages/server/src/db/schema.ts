@@ -119,6 +119,8 @@ export interface PhoneNumberTable {
 	verification_code_language: string | null;
 	/** JSON object of the business profile this number publishes, `{}` when unset (SPEC §2.19). */
 	business_profile: string;
+	/** `1` for a coexistence number, also on the WhatsApp Business app (SPEC §2.1). */
+	is_on_biz_app: 0 | 1;
 	created_at: string;
 }
 

@@ -5,6 +5,7 @@ import { controlNotFound } from "./control-plane-error.ts";
 import { noopEventPublisher, type EventPublisher } from "./event-bus.ts";
 import { expiredAccessTokenError, invalidAccessTokenError } from "./meta-errors.ts";
 import { createSystemScheduler, type Scheduler } from "./scheduler.ts";
+import type { SignupTokenIssuer } from "./signup-tokens.ts";
 
 /**
  * The bearer-token registry (SPEC §1.9).
@@ -46,6 +47,8 @@ export interface TokenRegistryOptions {
 	repositories: Repositories;
 	/** `WHALOC_TOKENS`; `undefined` — the default — leaves whaloc permissive. */
 	tokens?: readonly string[] | undefined;
+	/** Tokens Embedded Signup issued pass the strict gate too (SPEC §2.23). */
+	signupTokens?: SignupTokenIssuer;
 	events?: EventPublisher;
 	scheduler?: Scheduler;
 }
@@ -54,6 +57,7 @@ export class TokenRegistry {
 	readonly #repositories: Repositories;
 	readonly #events: EventPublisher;
 	readonly #scheduler: Scheduler;
+	readonly #signupTokens: SignupTokenIssuer | undefined;
 	/** Derived id → token, in the order `WHALOC_TOKENS` listed them; empty when permissive. */
 	readonly #tokens = new Map<string, string>();
 	readonly #strict: boolean;
@@ -62,6 +66,7 @@ export class TokenRegistry {
 		this.#repositories = options.repositories;
 		this.#events = options.events ?? noopEventPublisher;
 		this.#scheduler = options.scheduler ?? createSystemScheduler();
+		this.#signupTokens = options.signupTokens;
 		this.#strict = options.tokens !== undefined;
 
 		if (options.tokens !== undefined) {
@@ -99,6 +104,10 @@ export class TokenRegistry {
 		const id = tokenId(token);
 
 		if (!this.#tokens.has(id)) {
+			if (this.#signupTokens !== undefined && this.#signupTokens.grantsOf(token) !== null) {
+				return;
+			}
+
 			throw invalidAccessTokenError();
 		}
 

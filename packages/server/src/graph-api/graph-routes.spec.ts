@@ -148,6 +148,8 @@ describe("graph api surface", () => {
 				status: "CONNECTED",
 				code_verification_status: "VERIFIED",
 				name_status: "APPROVED",
+				platform_type: "CLOUD_API",
+				is_on_biz_app: false,
 				id: fixture.phoneNumberId,
 			});
 		});
@@ -207,6 +209,8 @@ describe("graph api surface", () => {
 						status: "CONNECTED",
 						code_verification_status: "VERIFIED",
 						name_status: "APPROVED",
+						platform_type: "CLOUD_API",
+						is_on_biz_app: false,
 					},
 				],
 				paging: { cursors: { before: anyString(), after: anyString() } },

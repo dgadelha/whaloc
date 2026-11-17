@@ -17,6 +17,7 @@ import {
 import type { StateService } from "./state-service.ts";
 import type { StatusLadder } from "./status-ladder.ts";
 import type { TemplateLifecycle } from "./template-lifecycle.ts";
+import type { EmbeddedSignupService } from "./embedded-signup-service.ts";
 import type { TypingService } from "./typing-service.ts";
 
 /**
@@ -44,6 +45,8 @@ export interface SnapshotServiceOptions {
 	statusLadder: StatusLadder;
 	templateLifecycle: TemplateLifecycle;
 	typing: TypingService;
+	/** Its pending codes grant WABAs the wipe removes, so they go too (SPEC §2.23). */
+	embeddedSignup: EmbeddedSignupService;
 	events?: EventPublisher;
 	/** Injected by tests so `exportedAt` is not the wall clock. */
 	scheduler?: Scheduler;
@@ -77,6 +80,7 @@ export class SnapshotService {
 	readonly #statusLadder: StatusLadder;
 	readonly #templateLifecycle: TemplateLifecycle;
 	readonly #typing: TypingService;
+	readonly #embeddedSignup: EmbeddedSignupService;
 	readonly #events: EventPublisher;
 	readonly #scheduler: Scheduler;
 
@@ -88,6 +92,7 @@ export class SnapshotService {
 		this.#statusLadder = options.statusLadder;
 		this.#templateLifecycle = options.templateLifecycle;
 		this.#typing = options.typing;
+		this.#embeddedSignup = options.embeddedSignup;
 		this.#events = options.events ?? noopEventPublisher;
 		this.#scheduler = options.scheduler ?? createSystemScheduler();
 	}
@@ -207,6 +212,7 @@ export class SnapshotService {
 		this.#statusLadder.cancelAll();
 		this.#templateLifecycle.cancelAll();
 		this.#typing.clearAll();
+		this.#embeddedSignup.clearCodes();
 
 		const previous = await this.#repositories.media.listAll();
 		const previousUploads = await this.#repositories.uploadSessions.listAll();

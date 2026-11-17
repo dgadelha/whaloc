@@ -325,6 +325,20 @@ export const MIGRATIONS: Record<string, Migration> = {
 			await db.schema.alterTable("messages").addColumn("template_snapshot", "text").execute();
 		},
 	},
+
+	/**
+	 * Whether a number also runs on the WhatsApp Business app (SPEC §2.1, coexistence): only the
+	 * Embedded Signup popup creates one that does (SPEC §2.24). Stored as 0/1, defaulting to 0, so
+	 * every number that existed before keeps reporting `is_on_biz_app: false`.
+	 */
+	"0008_phone_number_is_on_biz_app": {
+		up: async (db: Kysely<never>): Promise<void> => {
+			await db.schema
+				.alterTable("phone_numbers")
+				.addColumn("is_on_biz_app", "integer", column => column.notNull().defaultTo(0))
+				.execute();
+		},
+	},
 };
 
 /** Serves {@link MIGRATIONS} to Kysely's `Migrator`. */

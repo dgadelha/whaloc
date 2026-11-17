@@ -88,6 +88,12 @@ export interface Repositories {
 	expiredTokens: ExpiredTokenRepository;
 	/** Whole-database reads and writes, for state export/import (SPEC §5). */
 	snapshots: SnapshotRepository;
+	/**
+	 * Runs `work` in one transaction, against repositories bound to it. Every query of the work
+	 * goes through those: the connection is serialized, so one through the outer bundle would wait
+	 * for the transaction to end.
+	 */
+	transaction: <T>(work: (repositories: Repositories) => Promise<T>) => Promise<T>;
 }
 
 /**
@@ -125,5 +131,6 @@ export function createRepositories(db: Kysely<Database>): Repositories {
 		injectionRules: new InjectionRuleRepository(db),
 		expiredTokens: new ExpiredTokenRepository(db),
 		snapshots: new SnapshotRepository(db),
+		transaction: work => db.transaction().execute(async trx => work(createRepositories(trx))),
 	};
 }

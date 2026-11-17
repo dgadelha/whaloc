@@ -15,7 +15,9 @@ export interface ObjectRoutesOptions {
  * The three lifecycle fields ride along (SPEC §4): a consumer that manages its own numbers reads
  * them, and `fields` narrows the node for one that does not — the usual four-field request
  * (`verified_name`, `display_phone_number`, `quality_rating`, `throughput`) is unaffected either
- * way.
+ * way. So do the two an Embedded Signup consumer decides `register` on: `platform_type` follows
+ * the ladder, since only a registered number is on the Cloud API, and `is_on_biz_app` marks a
+ * coexistence number.
  */
 export function phoneNumberNode(record: PhoneNumberRecord): Record<string, unknown> {
 	return {
@@ -26,6 +28,8 @@ export function phoneNumberNode(record: PhoneNumberRecord): Record<string, unkno
 		status: record.status,
 		code_verification_status: record.codeVerificationStatus,
 		name_status: record.nameStatus,
+		platform_type: record.status === "CONNECTED" ? "CLOUD_API" : "NOT_APPLICABLE",
+		is_on_biz_app: record.isOnBizApp,
 		id: record.id,
 	};
 }

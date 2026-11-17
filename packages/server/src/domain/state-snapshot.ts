@@ -65,6 +65,8 @@ const phoneNumberRowSchema = z.object({
 	verification_code_method: nullable(z.enum(VERIFICATION_CODE_METHODS)),
 	verification_code_language: nullable(z.string()),
 	business_profile: jsonText,
+	// Added with Embedded Signup; a snapshot written before it has no coexistence numbers.
+	is_on_biz_app: z.union([z.literal(0), z.literal(1)]).default(0),
 	created_at: timestamp,
 });
 

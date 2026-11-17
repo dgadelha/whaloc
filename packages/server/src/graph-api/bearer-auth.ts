@@ -1,9 +1,21 @@
-import type { MiddlewareHandler } from "hono";
+import type { HonoRequest, MiddlewareHandler } from "hono";
 import { missingAccessTokenError, type TokenRegistry } from "../domain/index.ts";
 import type { GraphEnv } from "./graph-env.ts";
 
 /** `Bearer <token>`, case-insensitive on the scheme as RFC 6750 requires. */
 const BEARER_PATTERN = /^Bearer[ \t]+(\S.*)$/i;
+
+/**
+ * The access token a Graph request carries, `""` when it carries none (SPEC §1.9). Shared with
+ * the routes that answer ahead of the gate, so a credential is found the same way everywhere.
+ */
+export function graphAccessToken(request: HonoRequest): string {
+	const authorization = request.header("authorization")?.trim() ?? "";
+
+	return authorization === ""
+		? (request.query("access_token")?.trim() ?? "")
+		: (BEARER_PATTERN.exec(authorization)?.[1]?.trim() ?? "");
+}
 
 export interface BearerAuthOptions {
 	/** Decides whether a token is acceptable; permissive unless `WHALOC_TOKENS` is set. */
@@ -31,11 +43,7 @@ export interface BearerAuthOptions {
  */
 export function createBearerAuth(options: BearerAuthOptions): MiddlewareHandler<GraphEnv> {
 	return async (c, next) => {
-		const authorization = c.req.header("authorization")?.trim() ?? "";
-		const token =
-			authorization === ""
-				? (c.req.query("access_token")?.trim() ?? "")
-				: (BEARER_PATTERN.exec(authorization)?.[1]?.trim() ?? "");
+		const token = graphAccessToken(c.req);
 
 		if (token === "") {
 			throw missingAccessTokenError();

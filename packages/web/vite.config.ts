@@ -16,6 +16,8 @@ export default defineConfig({
 			// Control plane, WebSocket, media bytes and the versioned Graph API mount (SPEC §8).
 			"/api": { target: serverUrl, changeOrigin: true, ws: true },
 			"/whaloc-media": { target: serverUrl, changeOrigin: true },
+			// Loaded from here, the SDK opens its dialog on this origin, where Vite serves the page.
+			"/sdk.js": { target: serverUrl, changeOrigin: true },
 			[String.raw`^/v\d+\.\d+/`]: { target: serverUrl, changeOrigin: true },
 		},
 	},

@@ -97,6 +97,14 @@ function e164Digits(request: GraphPhoneNumberCreateRequest): string {
 	return cc === undefined || phoneNumber.startsWith(cc) ? phoneNumber : cc + phoneNumber;
 }
 
+export interface OnboardPhoneNumberInput {
+	wabaId: string;
+	/** As typed in the popup; only its digits are kept. */
+	phoneNumber: string;
+	verifiedName: string;
+	isOnBizApp: boolean;
+}
+
 export class PhoneNumberService {
 	readonly #repositories: Repositories;
 	readonly #webhooks: WebhookEmitter;
@@ -157,8 +165,12 @@ export class PhoneNumberService {
 	 * rather than pushed into SQL that cannot strip punctuation. `exceptId` lets an edit keep
 	 * its own number.
 	 */
-	async #findByDigits(digits: string, exceptId?: string): Promise<PhoneNumberRecord | null> {
-		const existing = await this.#repositories.phoneNumbers.list();
+	async #findByDigits(
+		digits: string,
+		exceptId?: string,
+		repositories: Repositories = this.#repositories,
+	): Promise<PhoneNumberRecord | null> {
+		const existing = await repositories.phoneNumbers.list();
 
 		return (
 			existing.find(
@@ -192,10 +204,27 @@ export class PhoneNumberService {
 	}
 
 	/** Same rule as the Graph 409, reported in the control plane's own error shape. */
-	async #assertDigitsAreFree(digits: string, exceptId?: string): Promise<void> {
-		if ((await this.#findByDigits(digits, exceptId)) !== null) {
+	async #assertDigitsAreFree(
+		digits: string,
+		exceptId?: string,
+		repositories: Repositories = this.#repositories,
+	): Promise<void> {
+		if ((await this.#findByDigits(digits, exceptId, repositories)) !== null) {
 			throw controlConflict(`${digits} is already registered on another phone number`, "duplicate_phone_number");
 		}
+	}
+
+	/** Refuses digits that are malformed or already on a number. */
+	async #assertCanOnboard(phoneNumber: string, repositories: Repositories): Promise<string> {
+		const digits = phoneNumberDigits(phoneNumber);
+
+		if (!E164_PATTERN.test(digits)) {
+			throw controlBadRequest(`${phoneNumber} is not a phone number in E.164 format`, "invalid_phone_number");
+		}
+
+		await this.#assertDigitsAreFree(digits, undefined, repositories);
+
+		return digits;
 	}
 
 	/** {@link #patch}, for the control plane: the same update, reported in its error shape. */
@@ -329,6 +358,35 @@ export class PhoneNumberService {
 		await this.#findOrThrow(phoneNumberId);
 
 		return this.#patch(phoneNumberId, { status: "DISCONNECTED" });
+	}
+
+	// --- Embedded Signup popup (SPEC §2.24) -----------------------------------------------------
+
+	/**
+	 * A number added in the Embedded Signup popup. Meta verifies it in the popup, so it starts
+	 * one rung below `CONNECTED` and the consumer's `register` finishes it. A coexistence number is
+	 * the exception: Meta says it is already registered and must not be registered again.
+	 *
+	 * Inserts through `repositories`, the caller's transaction, and announces nothing: the caller
+	 * calls {@link announceCreated} once that transaction has committed.
+	 */
+	async onboard(input: OnboardPhoneNumberInput, repositories: Repositories): Promise<PhoneNumberRecord> {
+		const digits = await this.#assertCanOnboard(input.phoneNumber, repositories);
+
+		return repositories.phoneNumbers.insert({
+			id: createPhoneNumberId(this.#random),
+			wabaId: input.wabaId,
+			displayPhoneNumber: formatDisplayPhoneNumber(digits),
+			verifiedName: input.verifiedName,
+			qualityRating: "UNKNOWN",
+			isOnBizApp: input.isOnBizApp,
+			...(!input.isOnBizApp && { status: "PENDING", nameStatus: "PENDING_REVIEW" }),
+		});
+	}
+
+	/** Announces a number {@link onboard} created. */
+	announceCreated(phoneNumber: PhoneNumberRecord): void {
+		this.#announce(phoneNumber, "created");
 	}
 
 	// --- Control plane (SPEC §5) ------------------------------------------------------------

@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type {
 	BusinessProfileService,
+	EmbeddedSignupService,
 	InjectionService,
 	MediaService,
 	MessageService,
@@ -19,6 +20,7 @@ import { createInjectionMiddleware } from "./injection.ts";
 import { createMediaRoutes } from "./media-routes.ts";
 import { createMessageRoutes } from "./message-routes.ts";
 import { createGraphErrorHandler } from "./meta-error-envelope.ts";
+import { createOAuthRoutes } from "./oauth-routes.ts";
 import { createObjectRoutes } from "./object-routes.ts";
 import { createPhoneNumberRoutes } from "./phone-number-routes.ts";
 import { createSubscribedAppRoutes } from "./subscribed-app-routes.ts";
@@ -35,6 +37,7 @@ export interface GraphRoutesOptions {
 	phoneNumbers: PhoneNumberService;
 	businessProfiles: BusinessProfileService;
 	subscribedApps: SubscribedAppService;
+	embeddedSignup: EmbeddedSignupService;
 	/** Error simulation (SPEC §4): the token gate and the injection rules. */
 	tokens: TokenRegistry;
 	injection: InjectionService;
@@ -60,8 +63,10 @@ export function createGraphRoutes(options: GraphRoutesOptions): Hono<GraphEnv> {
 	const routes = new Hono<GraphEnv>();
 
 	// Order is behavior, not taste: the context first so everything downstream has a request id,
-	// then authentication, then injection — an armed rule must not be able to hide a 401.
+	// then authentication, then injection — an armed rule must not be able to hide a 401. The
+	// Embedded Signup calls answer before the gate: they carry app credentials, not a token.
 	routes.use(createGraphContext());
+	routes.route("/", createOAuthRoutes({ embeddedSignup: options.embeddedSignup }));
 	routes.use(createBearerAuth({ tokens: options.tokens }));
 	routes.use(createInjectionMiddleware({ injection: options.injection }));
 

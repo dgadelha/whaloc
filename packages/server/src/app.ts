@@ -3,6 +3,7 @@ import type { AppEnv } from "./app-env.ts";
 import type { DomainServices } from "./composition.ts";
 import type { AppConfig } from "./config/index.ts";
 import { createControlRoutes, createHealthRoutes } from "./control-api/index.ts";
+import { createSdkRoutes } from "./embedded-signup/index.ts";
 import { createGraphRoutes, createMediaDownloadRoutes, GRAPH_VERSION_PATH } from "./graph-api/index.ts";
 import { createRequestLogger, type Logger } from "./logging/index.ts";
 import { createWebUiRoutes, hasWebUiBundle } from "./web-ui.ts";
@@ -41,6 +42,7 @@ export function createApp(options: CreateAppOptions): Hono<AppEnv> {
 			phoneNumbers: options.services.phoneNumbers,
 			businessProfiles: options.services.businessProfiles,
 			subscribedApps: options.services.subscribedApps,
+			embeddedSignup: options.services.embeddedSignup,
 			tokens: options.services.tokens,
 			injection: options.services.injection,
 			publicUrl: options.config.publicUrl,
@@ -54,6 +56,9 @@ export function createApp(options: CreateAppOptions): Hono<AppEnv> {
 			injection: options.services.injection,
 		}),
 	);
+
+	// Meta's SDK for Embedded Signup (SPEC §2.24); the dialog it opens is a web UI page.
+	app.route("/", createSdkRoutes());
 
 	// Last, so every surface above keeps its paths: the UI's SPA fallback only answers what
 	// nothing else claimed (SPEC §8). Without a built bundle — `npm run dev`, where Vite serves

@@ -59,6 +59,8 @@ describe("the static web UI", () => {
 		"/chats/573542517421694:5511912345678",
 		"/webhooks",
 		"/settings",
+		// The Embedded Signup popup `sdk.js` opens, with the query `FB.login` builds (SPEC §2.24).
+		"/dialog/embedded-signup?app_id=4242&origin=https%3A%2F%2Fapp.example.test&version=v25.0",
 	])("falls back to index.html on the in-app route %s", async route => {
 		const response = await fixture.app.request(route);
 

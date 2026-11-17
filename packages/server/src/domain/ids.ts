@@ -206,6 +206,22 @@ export function deriveVerificationCode(phoneNumberId: string): string {
 	return deriveNumericId(`verification_code:${phoneNumberId}`, VERIFICATION_CODE_DIGITS);
 }
 
+const AUTHORIZATION_CODE_BYTES = 48;
+const SIGNUP_SESSION_BYTES = 16;
+
+/**
+ * The single-use `code` Embedded Signup hands the page (SPEC §2.24). Meta's are long opaque
+ * strings starting `AQ`; consumers only pass them back to `oauth/access_token`.
+ */
+export function createAuthorizationCode(random: RandomBytes = defaultRandomBytes): string {
+	return `AQ${toBase64Url(random(AUTHORIZATION_CODE_BYTES))}`;
+}
+
+/** The `session_id` an Embedded Signup `ERROR` event carries (SPEC §2.24). */
+export function createSignupSessionId(random: RandomBytes = defaultRandomBytes): string {
+	return Buffer.from(random(SIGNUP_SESSION_BYTES)).toString("hex");
+}
+
 /** The `hub.challenge` whaloc sends and expects echoed back (SPEC §1.13) — pure randomness. */
 export function createWebhookChallenge(random: RandomBytes = defaultRandomBytes): string {
 	return Buffer.from(random(WEBHOOK_CHALLENGE_BYTES)).toString("hex");

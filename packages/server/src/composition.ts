@@ -15,6 +15,7 @@ import {
 	combineOutboundMessageEvents,
 	ContactService,
 	ConversationService,
+	EmbeddedSignupService,
 	createBackgroundTasks,
 	createEventBus,
 	InboundService,
@@ -25,6 +26,7 @@ import {
 	PhoneNumberService,
 	ReadReceiptService,
 	ResetService,
+	SignupTokenIssuer,
 	SnapshotService,
 	StateService,
 	StatusLadder,
@@ -64,6 +66,8 @@ export interface DomainServices {
 	/** Business profile and `subscribed_apps` (SPEC §2.19-§2.20). */
 	businessProfiles: BusinessProfileService;
 	subscribedApps: SubscribedAppService;
+	/** Embedded Signup: the popup, the code exchange and `debug_token` (SPEC §2.23-§2.24). */
+	embeddedSignup: EmbeddedSignupService;
 	/** Webhook engine, status ladder and template review (SPEC §3, §4). */
 	webhooks: WebhookEmitter;
 	statusLadder: StatusLadder;
@@ -194,6 +198,17 @@ export function createDomainServices(options: CreateDomainServicesOptions): Doma
 		events,
 		...(scheduler !== undefined && { scheduler }),
 	});
+	const wabas = new WabaService({ repositories, phoneNumbers, events });
+	const signupTokens = new SignupTokenIssuer({ appId: subscribedApps.identity.id, appSecret: config.appSecret });
+	const embeddedSignup = new EmbeddedSignupService({
+		repositories,
+		wabas,
+		phoneNumbers,
+		signupTokens,
+		appId: subscribedApps.identity.id,
+		appSecret: config.appSecret,
+		...(scheduler !== undefined && { scheduler }),
+	});
 
 	return {
 		objects: new ObjectService({ repositories }),
@@ -210,6 +225,7 @@ export function createDomainServices(options: CreateDomainServicesOptions): Doma
 		templates: new TemplateService({ repositories, events: templateLifecycle, uploads }),
 		businessProfiles: new BusinessProfileService({ repositories, media, uploads, events }),
 		subscribedApps,
+		embeddedSignup,
 		webhooks,
 		statusLadder,
 		templateLifecycle,
@@ -223,6 +239,7 @@ export function createDomainServices(options: CreateDomainServicesOptions): Doma
 		tokens: new TokenRegistry({
 			repositories,
 			tokens: config.tokens,
+			signupTokens,
 			events,
 			...(scheduler !== undefined && { scheduler }),
 		}),
@@ -245,7 +262,7 @@ export function createDomainServices(options: CreateDomainServicesOptions): Doma
 			...(scheduler !== undefined && { scheduler }),
 		}),
 		phoneNumbers,
-		wabas: new WabaService({ repositories, phoneNumbers, events }),
+		wabas,
 		state,
 		reset: new ResetService({
 			repositories,
@@ -256,6 +273,7 @@ export function createDomainServices(options: CreateDomainServicesOptions): Doma
 			statusLadder,
 			templateLifecycle,
 			typing,
+			embeddedSignup,
 			events,
 		}),
 		// An import replaces everything a reset would wipe, so it cancels the same timers —
@@ -268,6 +286,7 @@ export function createDomainServices(options: CreateDomainServicesOptions): Doma
 			statusLadder,
 			templateLifecycle,
 			typing,
+			embeddedSignup,
 			events,
 			...(scheduler !== undefined && { scheduler }),
 		}),

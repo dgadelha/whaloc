@@ -68,6 +68,25 @@ export {
 	type VerificationCodeMethod,
 } from "./common.ts";
 export {
+	LOGIN_RESPONSE_TYPE,
+	SESSION_INFO_VERSIONS,
+	SIGNUP_CANCEL_STEPS,
+	signupAppQuerySchema,
+	signupChoiceSchema,
+	signupChoicesResponseSchema,
+	signupCompleteRequestSchema,
+	signupCompleteResponseSchema,
+	signupErrorSessionResponseSchema,
+	signupSessionEventSchema,
+	type SignupCancelStep,
+	type SignupChoice,
+	type SignupCompleteRequest,
+	type SignupErrorSession,
+	type SessionInfoVersion,
+	type SignupResult,
+	type SignupSessionEvent,
+} from "./embedded-signup.ts";
+export {
 	conversationId,
 	conversationListResponseSchema,
 	conversationMessagesResponseSchema,
