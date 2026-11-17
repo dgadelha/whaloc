@@ -16,6 +16,10 @@ export function createSdkRoutes(): Hono<AppEnv> {
 	routes.get("/sdk.js", c => {
 		c.header("Content-Type", "application/javascript; charset=utf-8");
 		c.header("Cache-Control", SDK_CACHE_CONTROL);
+		// Meta's snippet loads the SDK with `crossorigin="anonymous"`, and a browser runs such a
+		// script from another origin only when the response allows it. Anonymous mode sends no
+		// credentials, so `*` opens this public script and nothing else.
+		c.header("Access-Control-Allow-Origin", "*");
 
 		return c.body(SDK_SCRIPT);
 	});

@@ -118,6 +118,16 @@ describe("the SDK stand-in", () => {
 		expect(callback.mock.calls).toEqual([[{ authResponse: { code: "AQcode" }, status: "connected" }]]);
 	});
 
+	it("lets a page on another origin run it, as Meta's snippet loads it with `crossorigin`", async () => {
+		const fixture = await createTestApp();
+		const response = await fixture.app.request("/sdk.js", { headers: { origin: PAGE_ORIGIN } });
+
+		await fixture.close();
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("access-control-allow-origin")).toBe("*");
+	});
+
 	it("reports a dialog closed without a code the way Meta's SDK does", async () => {
 		vi.useFakeTimers();
 
