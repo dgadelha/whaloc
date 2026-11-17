@@ -223,6 +223,80 @@ describe("bearer auth", () => {
 		});
 	});
 
+	describe("the access_token query parameter", () => {
+		function getWithQuery(token: string, headers: Record<string, string> = {}) {
+			return fixture.app.request(`/v25.0/${fixture.phoneNumberId}?access_token=${encodeURIComponent(token)}`, {
+				headers,
+			});
+		}
+
+		describe("permissive", () => {
+			beforeEach(async () => {
+				fixture = await createTestApp();
+			});
+
+			it("is accepted when there is no Authorization header", async () => {
+				expect(await statusOf(getWithQuery("anything-at-all"))).toBe(200);
+			});
+
+			// Header-less credential checks, as a client validating a WABA's token makes them.
+			it("is accepted on the WABA routes", async () => {
+				const templates = await fixture.app.request(
+					`/v14.0/${fixture.wabaId}/message_templates?access_token=any-token`,
+				);
+				const numbers = await fixture.app.request(
+					`/v14.0/${fixture.wabaId}/phone_numbers?fields=id&limit=100&access_token=any-token`,
+				);
+				const { data } = await readJson<{ data: { id: string }[] }>(numbers);
+				const ids = data.map(number => number.id);
+
+				expect(templates.status).toBe(200);
+				expect(numbers.status).toBe(200);
+				expect(ids).toContain(fixture.phoneNumberId);
+			});
+
+			it("rejects an empty one with the 401 / 190 envelope", async () => {
+				const response = await getWithQuery("  ");
+				const body = await readJson<ErrorEnvelope>(response);
+
+				expect(response.status).toBe(401);
+				expect(body.error.code).toBe(190);
+			});
+
+			it("does not rescue a malformed Authorization header", async () => {
+				expect(await statusOf(getWithQuery("good-token", { authorization: "Basic abc" }))).toBe(401);
+			});
+		});
+
+		describe("strict", () => {
+			beforeEach(async () => {
+				fixture = await createTestApp({ WHALOC_TOKENS: `${REGISTERED},${SECOND}` });
+			});
+
+			it("goes through the same registry as the header", async () => {
+				expect(await statusOf(getWithQuery(REGISTERED))).toBe(200);
+				expect(await statusOf(getWithQuery("EAAnot-in-the-registry"))).toBe(401);
+			});
+
+			it("lets the header win when both are present", async () => {
+				expect(await statusOf(getWithQuery(REGISTERED, { authorization: "Bearer EAAnot-in-the-registry" }))).toBe(401);
+				expect(await statusOf(getWithQuery("EAAnot-in-the-registry", { authorization: `Bearer ${REGISTERED}` }))).toBe(
+					200,
+				);
+			});
+
+			it("answers an expired token with subcode 463", async () => {
+				const { data } = await listTokens();
+
+				await fixture.app.request(`/api/tokens/${data[0]!.id}/expire`, { method: "POST" });
+
+				const body = await readJson<ErrorEnvelope>(await getWithQuery(REGISTERED));
+
+				expect(body.error).toMatchObject({ code: 190, error_subcode: 463 });
+			});
+		});
+	});
+
 	describe("the fixture's own token", () => {
 		beforeEach(async () => {
 			fixture = await createTestApp();
