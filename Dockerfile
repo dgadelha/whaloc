@@ -3,7 +3,7 @@
 # whaloc ships as a single image serving all three surfaces on one port (SPEC §8):
 # the Graph API mock, the control plane (+ WebSocket) and the static web UI.
 
-ARG NODE_IMAGE=node:24-alpine
+ARG NODE_IMAGE=node:26-alpine
 
 # --- build ---------------------------------------------------------------------------------
 # Compiles shared + server with `tsc` and the UI with Vite. Nothing from this stage reaches the
@@ -99,6 +99,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 ARG WHALOC_VERSION=0.0.0-dev
 ENV WHALOC_VERSION=${WHALOC_VERSION}
 
-# `node:sqlite` is still flagged experimental in Node 24 and warns on first use; the emulator
-# does not need the reminder on every boot.
-CMD ["node", "--disable-warning=ExperimentalWarning", "packages/server/dist/main.js"]
+CMD ["node", "packages/server/dist/main.js"]

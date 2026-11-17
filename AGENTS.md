@@ -62,8 +62,8 @@ packages in order — npm has no topological ordering. If a build fails with TS2
 
 ## Style
 
-- Node 24 runs the TS sources directly: code must stay erasable — no enums, namespaces or
-  parameter properties — and relative imports carry their `.ts` extension.
+- Node 26 runs the TS sources directly (type stripping): code must stay erasable — no enums,
+  namespaces or parameter properties — and relative imports carry their `.ts` extension.
 - Prettier: tabs, width 120, double quotes. Kebab-case filenames. Let `npm run format` settle
   arguments.
 - User-facing text (UI strings, docs, error messages) writes "ID"/"IDs"; wire and field names
@@ -81,8 +81,6 @@ gate is what CI runs: lint, typecheck, test, build — plus `format:check`.
 
 ## Gotchas
 
-- `node:sqlite` still emits an ExperimentalWarning on Node 24 — runtime scripts and the vitest
-  config already pass `--disable-warning=ExperimentalWarning`; keep it when adding entry points.
 - Never edit `docs/meta-openapi/*.yaml` — they are Meta's vendored specs (reference material,
   Meta Platform Terms, known to contain their own defects).
 - The web dev server (Vite :5173) proxies `/api`, `/api/ws`, `/v*.*` and `/whaloc-media`; the

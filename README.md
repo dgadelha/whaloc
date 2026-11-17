@@ -639,7 +639,7 @@ afternoon.
 
 ## Development
 
-Requires **Node 24**.
+Requires **Node 26**.
 
 ```sh
 npm install       # or `npm ci`, to install exactly what package-lock.json pins
@@ -687,12 +687,10 @@ command.
 | `packages/server` | Hono app: Graph API mock, control-plane API + WebSocket, static UI host |
 | `packages/web`    | React 19 + Vite UI, a pure client of the control-plane API              |
 
-The server runs its TypeScript sources directly (`node --experimental-transform-types`), so the
-code must stay erasable: no enums, namespaces or parameter properties, and relative imports keep
-their `.ts` extension. Workspace packages are consumed from source in dev and test through the
-`development` export condition, and from `dist/` in a build. The image needs no such flag — it
-runs the `tsc` output — only `--disable-warning=ExperimentalWarning`, because `node:sqlite` is
-still flagged in Node 24.
+The server runs its TypeScript sources directly (Node's type stripping), so the code must stay
+erasable: no enums, namespaces or parameter properties, and relative imports keep their `.ts`
+extension. Workspace packages are consumed from source in dev and test through the `development`
+export condition, and from `dist/` in a build; the image runs the `tsc` output.
 
 ```sh
 docker build -t whaloc:local .          # non-root, HEALTHCHECK on /health

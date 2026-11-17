@@ -51,9 +51,9 @@ export default defineConfig(
 			"unicorn/single-line-block-comment-style": "off",
 			// `Env`, `id`, `db`, … are the names Hono, Meta and Kysely use themselves.
 			"unicorn/name-replacements": "off",
-			// Temporal is not available on Node 24.
+			// Node 26 has Temporal, but moving the code's `Date` use to it is a change of its own.
 			"unicorn/prefer-temporal": "off",
-			// Neither are `Uint8Array#toBase64` and `Uint8Array.fromBase64`.
+			// Likewise `Uint8Array#toBase64` and `Uint8Array.fromBase64`.
 			"unicorn/prefer-uint8array-base64": "off",
 			"unicorn/prevent-abbreviations": "off",
 		},

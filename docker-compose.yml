@@ -45,7 +45,7 @@ services:
   # `X-Hub-Signature-256` against the shared app secret and logs every delivery. Deliberately
   # inline and dependency-free so this file works on its own.
   webhook-echo:
-    image: node:24-alpine
+    image: node:26-alpine
     environment:
       APP_SECRET: ${WHALOC_APP_SECRET:-dev-app-secret}
       VERIFY_TOKEN: ${WHALOC_WEBHOOK_VERIFY_TOKEN:-dev-verify-token}

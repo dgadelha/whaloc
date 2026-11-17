@@ -371,7 +371,7 @@ WebSocket `/api/ws`: server → client events `{type, payload}`: `message.create
 
 ## 6. Data model & persistence
 
-**Kysely + `node:sqlite`** (built into Node 24; no native deps, no WASM). Default DB is `:memory:`; `WHALOC_DB_PATH=/data/whaloc.db` makes state survive restarts (volume). Use Kysely's SQLite dialect surface with a thin custom driver over `node:sqlite`'s `DatabaseSync` (prefer a well-maintained npm dialect if one exists — verify on npm — else write the ~100-line driver in `packages/server/src/db/`; reuse Kysely's `SqliteAdapter`/`SqliteQueryCompiler`/`SqliteIntrospector`). Migrations run at boot (Kysely migrator, in-code migration list).
+**Kysely + `node:sqlite`** (built into Node 26; no native deps, no WASM). Default DB is `:memory:`; `WHALOC_DB_PATH=/data/whaloc.db` makes state survive restarts (volume). Use Kysely's SQLite dialect surface with a thin custom driver over `node:sqlite`'s `DatabaseSync` (prefer a well-maintained npm dialect if one exists — verify on npm — else write the ~100-line driver in `packages/server/src/db/`; reuse Kysely's `SqliteAdapter`/`SqliteQueryCompiler`/`SqliteIntrospector`). Migrations run at boot (Kysely migrator, in-code migration list).
 
 Tables (roughly): `wabas`, `phone_numbers` (`id`, waba_id, display_phone_number, verified_name, quality_rating, throughput_level, is_on_biz_app: `1` only for a coexistence number from the signup dialog, §2.24, else `0`), `contacts` (wa_id, profile_name, user_id — the BSUID, nullable and unique), `templates` (`id` digits, waba_id, name, language, category, parameter_format, components JSON, status, rejected_reason, quality_score), `messages` (wamid, direction, phone_number_id, contact, type, payload JSON, status, error JSON, biz_opaque_callback_data, template_snapshot JSON — `{parameter_format, components}` for a template send, `null` otherwise and for rows stored before it existed, timestamps, reply_to), `media` (`id` digits, phone_number_id, mime_type, sha256, file_size, storage_key, url_token), `upload_sessions` (`id`, app_id, file_name, file_type, file_length, received_bytes, handle unique, storage_key, sha256, url_token unique, timestamps — §2.21; one row is the whole life of an upload, which is why a handle survives a restart), `webhook_deliveries` (`id`, event_type, url, request_body, request_headers, response_status, response_body, error, attempt, duration_ms, created_at), `injection_rules` (`id` time-ordered, target, trigger_kind, trigger_count, preset, retry_after_seconds, regain_access_minutes, custom JSON, seen, matches, remaining, timestamps), `expired_tokens` (token_id = truncated SHA-256, expired_at).
 
@@ -480,8 +480,8 @@ The URL is the **single source of truth**. One gate resolves the path's IDs agai
 
 ### Runtime & tooling
 
-- **Node 24 (LTS)**, TypeScript run natively: dev = `node --watch --experimental-transform-types --disable-warning=ExperimentalWarning src/main.ts`; prod = `tsc -p tsconfig.build.json` → plain `node dist/main.js`.
-- Package manager: **npm** — the one bundled with Node 24, so a clone needs nothing installed first. No `packageManager` pin (and no corepack); `engines` states the floor (`node >=24.0.0`, `npm >=11.0.0`) and the root manifest lists the three workspaces in dependency order, since npm runs workspace scripts in that order rather than topologically.
+- **Node 26 (LTS)**, TypeScript run natively (type stripping): dev = `node --watch src/main.ts`; prod = `tsc -p tsconfig.build.json` → plain `node dist/main.js`.
+- Package manager: **npm** — the one bundled with Node 26, so a clone needs nothing installed first. No `packageManager` pin (and no corepack); `engines` states the floor (`node >=26.0.0`, `npm >=11.0.0`) and the root manifest lists the three workspaces in dependency order, since npm runs workspace scripts in that order rather than topologically.
 - **Hono** + `@hono/node-server` (its v2 `upgradeWebSocket` over a `noServer` `ws` server handles `/api/ws`, so `@hono/node-ws` — still pinned to node-server v1 — is not used); request bodies are validated by parsing them with the zod schemas directly.
 - **zod v4**, **pino** (JSON-only — pipe through `npx pino-pretty` for colors), **kysely**, **vitest v4**, **eslint flat config + prettier**: `strictTypeChecked` + `eslint-plugin-unicorn` (all) + prettier; `.prettierrc`: tabs, width 120, double quotes, `arrowParens:"avoid"`, `trailingComma:"all"`. tsconfig: `NodeNext`, `strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`, `rewriteRelativeImportExtensions` (relative imports carry `.ts`), `isolatedModules`, `erasableSyntaxOnly` (no enums/namespaces — required for Node type stripping).
 - React UI: React 19, react-router, plain CSS (CSS custom properties for theming; light+dark). Vite dev server proxies `/api`, `/api/ws`, `/v25.0`, `/whaloc-media` and `/sdk.js` to the server.
@@ -489,7 +489,7 @@ The URL is the **single source of truth**. One gate resolves the path's IDs agai
 
 ### Docker
 
-Multi-stage: build stage (`npm ci`, build shared+server+web) → a deps stage that reruns `npm ci --omit=dev` scoped to the server workspace → runtime stage on `node:24-alpine`, non-root user, only prod deps + `dist` + web static; `HEALTHCHECK` on `/health`; `VOLUME /data`. Target image well under 300 MB.
+Multi-stage: build stage (`npm ci`, build shared+server+web) → a deps stage that reruns `npm ci --omit=dev` scoped to the server workspace → runtime stage on `node:26-alpine`, non-root user, only prod deps + `dist` + web static; `HEALTHCHECK` on `/health`; `VOLUME /data`. Target image well under 300 MB.
 
 ### Compose integration (documentation deliverable)
 
