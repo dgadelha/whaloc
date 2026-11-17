@@ -1,12 +1,11 @@
 import { Hono } from "hono";
 import type { EmbeddedSignupService } from "../domain/index.ts";
+import { graphAccessToken } from "./bearer-auth.ts";
 import type { GraphEnv } from "./graph-env.ts";
 
 export interface OAuthRoutesOptions {
 	embeddedSignup: EmbeddedSignupService;
 }
-
-const BEARER_PATTERN = /^Bearer[ \t]+(\S.*)$/i;
 
 /** Both scopes the Embedded Signup configuration asks for, each granted on the shared WABAs. */
 const SIGNUP_SCOPES = ["whatsapp_business_management", "whatsapp_business_messaging"] as const;
@@ -16,8 +15,8 @@ const SIGNUP_SCOPES = ["whatsapp_business_management", "whatsapp_business_messag
  *
  * Neither carries a business token, so {@link createGraphRoutes} mounts this router **ahead of the
  * bearer gate and the injection rules**: the code exchange authenticates with `client_id` and
- * `client_secret`, and `debug_token` with the app token `{app-id}|{app-secret}`, sent as a bearer
- * or as `access_token` in the query.
+ * `client_secret`, and `debug_token` with the app token `{app-id}|{app-secret}`, found where the
+ * gate finds a business token: the bearer header, or `access_token` in the query without one.
  */
 export function createOAuthRoutes(options: OAuthRoutesOptions): Hono<GraphEnv> {
 	const routes = new Hono<GraphEnv>();
@@ -33,8 +32,7 @@ export function createOAuthRoutes(options: OAuthRoutesOptions): Hono<GraphEnv> {
 	});
 
 	routes.get("/debug_token", c => {
-		const bearer = BEARER_PATTERN.exec(c.req.header("authorization")?.trim() ?? "")?.[1]?.trim();
-		const info = options.embeddedSignup.debugToken(bearer ?? c.req.query("access_token"), c.req.query("input_token"));
+		const info = options.embeddedSignup.debugToken(graphAccessToken(c.req), c.req.query("input_token"));
 
 		if (info.wabaIds === null) {
 			return c.json({

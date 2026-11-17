@@ -265,6 +265,19 @@ describe("Embedded Signup", () => {
 		expect(debug.status).toBe(200);
 	});
 
+	it("finds the app token where the bearer gate finds a token: the query only without a header", async () => {
+		await start();
+
+		const path = `/v25.0/debug_token?input_token=x&access_token=${APP_ID}|${APP_SECRET}`;
+		const fromQuery = await fixture.app.request(path);
+		const malformedHeader = await fixture.app.request(path, { headers: { authorization: "Basic abc" } });
+		const refusal = await readJson<ErrorEnvelope>(malformedHeader);
+
+		expect(fromQuery.status).toBe(200);
+		expect(malformedHeader.status).toBe(401);
+		expect(refusal.error.code).toBe(190);
+	});
+
 	it("gives the dialog the WABAs to pick from and the session an ERROR event names", async () => {
 		await start();
 
