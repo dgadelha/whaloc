@@ -36,7 +36,7 @@ function ReplyButtons(props: { menu: Message; buttons: unknown[] }) {
 		const id = readString(button, "reply", "id");
 		const title = readString(button, "reply", "title");
 
-		return id === null || title === null ? [] : [{ id, title }];
+		return id === null || title === null ? [] : { id, title };
 	});
 
 	return (
@@ -80,7 +80,7 @@ function readSections(sections: unknown[]): ListSection[] {
 			const id = readString(row, "id");
 			const title = readString(row, "title");
 
-			return id === null || title === null ? [] : [{ id, title, description: readString(row, "description") }];
+			return id === null || title === null ? [] : { id, title, description: readString(row, "description") };
 		}),
 	}));
 }

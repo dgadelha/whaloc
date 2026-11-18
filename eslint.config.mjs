@@ -53,8 +53,18 @@ export default defineConfig(
 			"unicorn/name-replacements": "off",
 			// Node 26 has Temporal, but moving the code's `Date` use to it is a change of its own.
 			"unicorn/prefer-temporal": "off",
-			// Likewise `Uint8Array#toBase64` and `Uint8Array.fromBase64`.
+			// Likewise `Uint8Array#toBase64` and `Uint8Array.fromBase64`, and their hex counterparts.
 			"unicorn/prefer-uint8array-base64": "off",
+			"unicorn/prefer-uint8array-hex": "off",
+			// Comments are wrapped by hand at the line width, which Prettier leaves to the author.
+			"unicorn/no-manually-wrapped-comments": "off",
+			// The code returns early from guard clauses, which this rule would fold into ternaries.
+			"unicorn/prefer-ternary": "off",
+			// Types live at module level, next to the code that names them.
+			"unicorn/prefer-smaller-scope": "off",
+			// A parameter that every caller fills the same way still says what the function varies on.
+			"unicorn/no-unnecessary-parameters": "off",
+			"unicorn/prefer-options-parameter": "off",
 			"unicorn/prevent-abbreviations": "off",
 		},
 	},

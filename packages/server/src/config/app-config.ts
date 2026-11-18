@@ -235,33 +235,35 @@ export const appConfigSchema = z
 		WHALOC_LOG_LEVEL: z.enum(LOG_LEVELS).default("info"),
 	})
 	.superRefine(checkS3Env)
-	.transform(env => ({
-		port: env.WHALOC_PORT,
-		host: env.WHALOC_HOST,
-		publicUrl: env.WHALOC_PUBLIC_URL,
-		webhookUrl: env.WHALOC_WEBHOOK_URL,
-		appSecret: env.WHALOC_APP_SECRET,
-		webhookVerifyToken: env.WHALOC_WEBHOOK_VERIFY_TOKEN,
-		verifyOnStart: env.WHALOC_VERIFY_ON_START,
-		/** `undefined` = derive it; {@link SubscribedAppService} owns that fallback. */
-		appId: env.WHALOC_APP_ID,
-		seed: env.WHALOC_SEED,
-		statusDelays: env.WHALOC_STATUS_DELAYS,
-		/** `null` = templates stay `PENDING` until approved through the control plane. */
-		templateAutoApproveMs: env.WHALOC_TEMPLATE_AUTO_APPROVE,
-		/** `undefined` = permissive auth: any non-empty bearer token is accepted (SPEC §1.9). */
-		tokens: env.WHALOC_TOKENS,
-		/** `undefined` = uploaded media never expires (SPEC §4). */
-		mediaTtlSeconds: env.WHALOC_MEDIA_TTL_SECONDS,
-		dbPath: env.WHALOC_DB_PATH,
-		/** Which `MediaStorage` the boot sequence builds (SPEC §6). */
-		mediaBackend: env.WHALOC_MEDIA_BACKEND,
-		mediaDir: env.WHALOC_MEDIA_DIR,
-		/** Set only for the `s3` backend; `undefined` means the bytes go to {@link mediaDir}. */
-		s3: s3ConfigOf(env),
-		/** Where the static UI is served from; an absent directory just leaves `/` unrouted. */
-		webDir: env.WHALOC_WEB_DIR,
-		logLevel: env.WHALOC_LOG_LEVEL,
-	}));
+	.transform(env => {
+		return {
+			port: env.WHALOC_PORT,
+			host: env.WHALOC_HOST,
+			publicUrl: env.WHALOC_PUBLIC_URL,
+			webhookUrl: env.WHALOC_WEBHOOK_URL,
+			appSecret: env.WHALOC_APP_SECRET,
+			webhookVerifyToken: env.WHALOC_WEBHOOK_VERIFY_TOKEN,
+			verifyOnStart: env.WHALOC_VERIFY_ON_START,
+			/** `undefined` = derive it; {@link SubscribedAppService} owns that fallback. */
+			appId: env.WHALOC_APP_ID,
+			seed: env.WHALOC_SEED,
+			statusDelays: env.WHALOC_STATUS_DELAYS,
+			/** `null` = templates stay `PENDING` until approved through the control plane. */
+			templateAutoApproveMs: env.WHALOC_TEMPLATE_AUTO_APPROVE,
+			/** `undefined` = permissive auth: any non-empty bearer token is accepted (SPEC §1.9). */
+			tokens: env.WHALOC_TOKENS,
+			/** `undefined` = uploaded media never expires (SPEC §4). */
+			mediaTtlSeconds: env.WHALOC_MEDIA_TTL_SECONDS,
+			dbPath: env.WHALOC_DB_PATH,
+			/** Which `MediaStorage` the boot sequence builds (SPEC §6). */
+			mediaBackend: env.WHALOC_MEDIA_BACKEND,
+			mediaDir: env.WHALOC_MEDIA_DIR,
+			/** Set only for the `s3` backend; `undefined` means the bytes go to {@link mediaDir}. */
+			s3: s3ConfigOf(env),
+			/** Where the static UI is served from; an absent directory just leaves `/` unrouted. */
+			webDir: env.WHALOC_WEB_DIR,
+			logLevel: env.WHALOC_LOG_LEVEL,
+		};
+	});
 
 export type AppConfig = z.infer<typeof appConfigSchema>;

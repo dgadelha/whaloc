@@ -79,7 +79,6 @@ export async function startCaptureServer(
 	const handle = async (incoming: IncomingMessage, outgoing: ServerResponse): Promise<void> => {
 		const rawBody = await readBody(incoming);
 		// A base is required to parse a path-only request target; nothing ever fetches it.
-		// eslint-disable-next-line unicorn/prefer-https
 		const url = new URL(incoming.url ?? "/", "http://capture.invalid");
 		const captured: CapturedRequest = {
 			method: incoming.method ?? "GET",

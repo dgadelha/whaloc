@@ -222,7 +222,7 @@ export class SnapshotService {
 		await deleteStoredMedia({
 			storageKeys: [
 				...previous.map(media => media.storageKey),
-				...previousUploads.flatMap(session => (session.storageKey === null ? [] : [session.storageKey])),
+				...previousUploads.flatMap(session => (session.storageKey === null ? [] : session.storageKey)),
 			],
 			keep: arriving,
 			mediaStorage: this.#mediaStorage,

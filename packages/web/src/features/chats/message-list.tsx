@@ -157,10 +157,12 @@ export function MessageList(props: MessageListProps) {
 					onClick={() => {
 						const element = container.current;
 
-						if (element !== null) {
-							element.scrollTop = element.scrollHeight;
-							setAtBottom(true);
+						if (element === null) {
+							return;
 						}
+
+						element.scrollTop = element.scrollHeight;
+						setAtBottom(true);
 					}}
 				>
 					Jump to latest ↓
