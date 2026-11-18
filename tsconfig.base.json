@@ -2,8 +2,8 @@
 	// Shared compiler options for every workspace package. Packages add their own
 	// `include`/`lib`, plus a `tsconfig.build.json` for emitting.
 	"compilerOptions": {
-		// Environment — Node 24 runs the TypeScript sources directly in dev
-		// (`node --experimental-transform-types`), so the module system must be Node's.
+		// Environment — Node 26 runs the TypeScript sources directly in dev (type stripping),
+		// so the module system must be Node's.
 		"module": "nodenext",
 		"moduleResolution": "nodenext",
 		"target": "esnext",

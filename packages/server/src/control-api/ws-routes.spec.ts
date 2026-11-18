@@ -8,7 +8,7 @@ import { createTestApp, TEST_AUTH_HEADERS, type TestApp } from "../testing/test-
 
 /**
  * The control-plane WebSocket end to end (SPEC §5): a real server on an ephemeral port, a real
- * browser-style `WebSocket` client (Node 24 ships one), and the events a UI would react to.
+ * browser-style `WebSocket` client (Node ships one), and the events a UI would react to.
  *
  * `app.request()` cannot exercise this — the upgrade is handled by the Node adapter, not by
  * the Hono app — so this is the one spec that listens on a socket.

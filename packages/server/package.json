@@ -11,8 +11,8 @@
 	],
 	"scripts": {
 		"build": "tsc -p tsconfig.build.json",
-		"dev": "node --watch --experimental-transform-types --disable-warning=ExperimentalWarning --conditions=development src/main.ts",
-		"start": "node --disable-warning=ExperimentalWarning dist/main.js",
+		"dev": "node --watch --conditions=development src/main.ts",
+		"start": "node dist/main.js",
 		"test": "vitest run",
 		"test:watch": "vitest watch",
 		"typecheck": "tsc"
@@ -29,9 +29,9 @@
 		"zod": "^4.5.4"
 	},
 	"devDependencies": {
-		"@types/node": "^24.13.3",
+		"@types/node": "^26.6.6",
 		"@types/ws": "^8.18.1",
 		"typescript": "^6.0.3",
-		"vitest": "^4.1.11"
+		"vitest": "^5.1.0"
 	}
 }
