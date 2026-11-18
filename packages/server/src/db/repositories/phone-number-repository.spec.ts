@@ -145,4 +145,26 @@ describe("PhoneNumberRepository", () => {
 		expect(await repository.listByWabaId("999")).toEqual([]);
 		expect(await repository.list()).toHaveLength(2);
 	});
+
+	it("groups every number by its WABA, in the order each WABA lists them", async () => {
+		const otherWabaId = "102290129340399";
+		const wabas = new WabaRepository(handle.db);
+
+		await wabas.insert({ id: otherWabaId, name: "Other" });
+		await insertDefault({ id: "3", displayPhoneNumber: "+1 555 000 0300" });
+		await repository.insert({
+			id: "4",
+			wabaId: otherWabaId,
+			displayPhoneNumber: "+1 555 000 0400",
+			verifiedName: "Other",
+		});
+		await insertDefault({ id: "1", displayPhoneNumber: "+1 555 000 0100" });
+
+		const grouped = await repository.listGroupedByWabaId();
+
+		expect(new Set(grouped.keys())).toEqual(new Set([WABA_ID, otherWabaId]));
+		expect(grouped.get(WABA_ID)).toEqual(await repository.listByWabaId(WABA_ID));
+		expect(grouped.get(otherWabaId)).toEqual(await repository.listByWabaId(otherWabaId));
+		expect(grouped.has("999")).toBe(false);
+	});
 });
