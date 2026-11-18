@@ -151,7 +151,7 @@ describe("resumable uploads (SPEC §2.21, §2.22)", () => {
 
 			await sendChunk(id, IMAGE_BYTES.subarray(0, 1000));
 
-			const response = await sendChunk(id, IMAGE_BYTES.subarray(1000), 0);
+			const response = await sendChunk(id, IMAGE_BYTES.subarray(1000));
 
 			expect(response.status).toBe(400);
 			expect(await readJson<{ error: { error_data: { details: string } } }>(response)).toMatchObject({

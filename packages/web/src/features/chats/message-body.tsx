@@ -65,7 +65,7 @@ function ContactsNode(props: { cards: unknown[] }) {
 				const phones = asArray(asRecord(card)?.["phones"]).flatMap(phone => {
 					const number = readString(phone, "phone");
 
-					return number === null ? [] : [number];
+					return number === null ? [] : number;
 				});
 
 				return (

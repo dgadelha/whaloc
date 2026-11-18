@@ -74,7 +74,7 @@ function pageUrl(options: PageUrlOptions): string {
 	const url = new URL(`${options.publicUrl}/${options.version}/${options.wabaId}/message_templates`);
 
 	for (const [key, value] of options.query) {
-		if (key !== "limit" && key !== "after" && key !== "before") {
+		if (!["limit", "after", "before"].includes(key)) {
 			url.searchParams.append(key, value);
 		}
 	}

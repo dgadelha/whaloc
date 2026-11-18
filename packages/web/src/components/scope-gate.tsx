@@ -53,12 +53,9 @@ export function ScopeGate(props: ScopeGateProps) {
 		props.view === "templates" ||
 		(wanted.phoneNumberId === null ? resolved.phoneNumberId === null : resolved.phoneNumberId === wanted.phoneNumberId);
 	const isHonest = resolved.wabaId === wanted.wabaId && isPhoneHonest;
-	const missing =
-		wanted.wabaId !== null && resolved.wabaId !== wanted.wabaId
-			? "That WABA is gone"
-			: wanted.phoneNumberId !== null && resolved.phoneNumberId !== wanted.phoneNumberId
-				? "That phone number is gone"
-				: null;
+	const isWabaGone = wanted.wabaId !== null && resolved.wabaId !== wanted.wabaId;
+	const isPhoneGone = wanted.phoneNumberId !== null && resolved.phoneNumberId !== wanted.phoneNumberId;
+	const missing = isWabaGone ? "That WABA is gone" : isPhoneGone ? "That phone number is gone" : null;
 	const notified = useRef<string | null>(null);
 
 	useEffect(() => {

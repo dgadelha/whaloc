@@ -85,7 +85,7 @@ export class ResetService {
 		await deleteStoredMedia({
 			storageKeys: [
 				...objects.map(media => media.storageKey),
-				...uploads.flatMap(session => (session.storageKey === null ? [] : [session.storageKey])),
+				...uploads.flatMap(session => (session.storageKey === null ? [] : session.storageKey)),
 			],
 			mediaStorage: this.#mediaStorage,
 			logger: this.#logger,
