@@ -35,18 +35,15 @@ export class StateService {
 
 	async snapshot(): Promise<StateResponse> {
 		const wabas = await this.#repositories.wabas.list();
-		const state: WabaState[] = [];
-
-		for (const waba of wabas) {
-			const phoneNumbers = await this.#repositories.phoneNumbers.listByWabaId(waba.id);
-
-			state.push({
+		const phoneNumbers = await this.#repositories.phoneNumbers.listGroupedByWabaId();
+		const state: WabaState[] = wabas.map(waba => {
+			return {
 				id: waba.id,
 				name: waba.name,
 				subscribedAt: waba.subscribedAt,
-				phoneNumbers: phoneNumbers.map(phoneNumber => toPhoneNumberDto(phoneNumber)),
-			});
-		}
+				phoneNumbers: (phoneNumbers.get(waba.id) ?? []).map(phoneNumber => toPhoneNumberDto(phoneNumber)),
+			};
+		});
 
 		return {
 			publicUrl: this.#config.publicUrl,

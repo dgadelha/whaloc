@@ -270,10 +270,9 @@ export class EmbeddedSignupService {
 		this.#assertKnownApp(appId);
 
 		const wabas = await this.#repositories.wabas.list();
+		const phoneNumbers = await this.#repositories.phoneNumbers.listGroupedByWabaId();
 
-		return Promise.all(
-			wabas.map(async waba => ({ waba, phoneNumbers: await this.#repositories.phoneNumbers.listByWabaId(waba.id) })),
-		);
+		return wabas.map(waba => ({ waba, phoneNumbers: phoneNumbers.get(waba.id) ?? [] }));
 	}
 
 	/** What an `ERROR` event needs besides the error itself: Meta's session ID and a ms timestamp. */

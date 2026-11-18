@@ -183,6 +183,14 @@ export class PhoneNumberRepository {
 		return rows.map(row => toRecord(row));
 	}
 
+	/**
+	 * Every number keyed by its WABA, each group in {@link listByWabaId}'s order, from one query
+	 * rather than one per WABA. A WABA without numbers has no entry.
+	 */
+	async listGroupedByWabaId(): Promise<Map<string, PhoneNumberRecord[]>> {
+		return Map.groupBy(await this.list(), record => record.wabaId);
+	}
+
 	/** Used by the control plane and by the registration ladder (SPEC §4, §5). */
 	async update(id: string, input: UpdatePhoneNumberInput): Promise<PhoneNumberRecord | null> {
 		const patch = {
